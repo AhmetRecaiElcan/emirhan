@@ -38,8 +38,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Column(
-        children: [
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            children: [
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -188,7 +192,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Future<void> _openProduct(String productId) async {

@@ -48,15 +48,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          items: [
-            _buildNavItem(Icons.grid_view_rounded, 'Tüm Ürünler', 0),
-            _buildNavItem(Icons.inventory_2_rounded, 'Ürünlerim', 1),
-            _buildNavItem(Icons.swap_horiz_rounded, 'İşlemler', 2),
-            _buildNavItem(Icons.person_rounded, 'Profil', 3),
-          ],
+        child: SafeArea(
+          top: false,
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            items: [
+              _buildNavItem(Icons.grid_view_rounded, 'Tüm Ürünler', 0),
+              _buildNavItem(Icons.inventory_2_rounded, 'Ürünlerim', 1),
+              _buildNavItem(Icons.swap_horiz_rounded, 'İşlemler', 2),
+              _buildNavItem(Icons.person_rounded, 'Profil', 3),
+            ],
+          ),
         ),
       ),
     );

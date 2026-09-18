@@ -16,8 +16,12 @@ class ProfileScreen extends StatelessWidget {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 700),
+            child: Column(
+              children: [
             const SizedBox(height: 20),
             // Profil başlığı
             Container(
@@ -169,7 +173,9 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildMenuItem({

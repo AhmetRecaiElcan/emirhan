@@ -346,11 +346,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 700),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                         // Fotoğraf alanı
                         GestureDetector(
                           onTap: _showImagePicker,
@@ -694,6 +698,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                 ),
               ),
+            ),
+          ),
             ],
           ),
         ),

@@ -116,9 +116,13 @@ class ProductDetailScreen extends StatelessWidget {
 
                     return SingleChildScrollView(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                           // Ürün fotoğrafı
                           ClipRRect(
                             borderRadius: BorderRadius.circular(20),
@@ -319,7 +323,9 @@ class ProductDetailScreen extends StatelessWidget {
                           const SizedBox(height: 20),
                         ],
                       ),
-                    );
+                    ),
+                  ),
+                );
                   },
                 ),
               ),

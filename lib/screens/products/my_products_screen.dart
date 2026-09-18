@@ -19,8 +19,12 @@ class MyProductsScreen extends StatelessWidget {
     final userId = authService.currentUser?.uid ?? '';
 
     return SafeArea(
-      child: Column(
-        children: [
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1400),
+          child: Column(
+            children: [
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -177,9 +181,9 @@ class MyProductsScreen extends StatelessWidget {
 
                 return GridView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.68,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    childAspectRatio: 0.72,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                   ),
@@ -190,7 +194,7 @@ class MyProductsScreen extends StatelessWidget {
                       showCreator: false,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(
+                           MaterialPageRoute(
                             builder: (_) => ProductDetailScreen(
                               product: products[index],
                             ),
@@ -205,6 +209,8 @@ class MyProductsScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
