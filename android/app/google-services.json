@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "586775658888",
+    "project_id": "emrullah-b3836",
+    "storage_bucket": "emrullah-b3836.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:586775658888:android:3a29812f5be59193fd3a3d",
+        "android_client_info": {
+          "package_name": "com.emirhan.depo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlamv3YVgD9gC0TtVHWdEMMrsVoBbFsGY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
