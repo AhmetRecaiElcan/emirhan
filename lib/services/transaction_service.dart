@@ -52,4 +52,26 @@ class TransactionService {
       return list;
     });
   }
+
+  // Tek bir işlemi sil
+  Future<void> deleteTransaction(String transactionId) async {
+    await _transactionsRef.doc(transactionId).delete();
+  }
+
+  // Tüm işlemleri temizle (toplu silme)
+  Future<void> clearAllTransactions() async {
+    final snapshot = await _transactionsRef.get();
+    final docs = snapshot.docs;
+    if (docs.isEmpty) return;
+
+    // Firestore batch maksimum 500 işlem destekler
+    for (var i = 0; i < docs.length; i += 500) {
+      final batch = _firestore.batch();
+      final end = (i + 500 < docs.length) ? i + 500 : docs.length;
+      for (var j = i; j < end; j++) {
+        batch.delete(docs[j].reference);
+      }
+      await batch.commit();
+    }
+  }
 }

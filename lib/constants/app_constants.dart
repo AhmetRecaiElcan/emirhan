@@ -13,19 +13,20 @@ class AppConstants {
     'H',
   ];
 
-  static const String specialDepot = 'Z1';
+  static const String specialDepot = 'Zemin 1';
 
   static String buildDepot(int number, String letter) => '$number$letter';
 
   static ({int number, String letter, bool special}) parseDepot(String depot) {
-    if (depot == specialDepot) {
+    final clean = depot.trim().toLowerCase();
+    if (clean == 'zemin 1' || clean == 'zemin1' || clean == 'z1') {
       return (number: depotNumbers.first, letter: depotLetters.first, special: true);
     }
-    final match = RegExp(r'^(\d+)([A-H])$').firstMatch(depot);
+    final match = RegExp(r'^(\d+)([A-H])$', caseSensitive: false).firstMatch(depot.trim());
     if (match != null) {
       return (
         number: int.parse(match.group(1)!),
-        letter: match.group(2)!,
+        letter: match.group(2)!.toUpperCase(),
         special: false,
       );
     }

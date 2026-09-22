@@ -6,11 +6,13 @@ import '../models/transaction_model.dart';
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const TransactionTile({
     super.key,
     required this.transaction,
     this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -116,6 +118,19 @@ class TransactionTile extends StatelessWidget {
                 ),
               ),
             ),
+            if (onDelete != null) ...[
+              const SizedBox(width: 6),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                hoverColor: AppTheme.errorColor.withValues(alpha: 0.15),
+                splashRadius: 18,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                tooltip: 'İşlemi Sil',
+                onPressed: onDelete,
+              ),
+            ],
           ],
         ),
       ),
