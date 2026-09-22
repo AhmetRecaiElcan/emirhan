@@ -11,6 +11,7 @@ class ProductModel {
   final String createdByName;
   final DateTime createdAt;
   final double minQuantity;
+  final String purchaseType;
 
   ProductModel({
     required this.id,
@@ -23,6 +24,7 @@ class ProductModel {
     required this.createdByName,
     required this.createdAt,
     this.minQuantity = 0,
+    this.purchaseType = 'İşletme Geliriyle Alınanlar',
   });
 
   bool get isLowStock => quantity <= minQuantity;
@@ -39,6 +41,7 @@ class ProductModel {
       createdByName: map['createdByName'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       minQuantity: (map['minQuantity'] ?? 0).toDouble(),
+      purchaseType: map['purchaseType'] ?? 'İşletme Geliriyle Alınanlar',
     );
   }
 
@@ -52,6 +55,7 @@ class ProductModel {
       'createdBy': createdBy,
       'createdByName': createdByName,
       'minQuantity': minQuantity,
+      'purchaseType': purchaseType,
       if (!isUpdate) 'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -67,6 +71,7 @@ class ProductModel {
     String? createdByName,
     DateTime? createdAt,
     double? minQuantity,
+    String? purchaseType,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -79,6 +84,7 @@ class ProductModel {
       createdByName: createdByName ?? this.createdByName,
       createdAt: createdAt ?? this.createdAt,
       minQuantity: minQuantity ?? this.minQuantity,
+      purchaseType: purchaseType ?? this.purchaseType,
     );
   }
 }

@@ -14,15 +14,11 @@ class PdfService {
     // Türkçe karakter desteği için Roboto fontları
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
-    final fontMedium = await PdfGoogleFonts.robotoMedium();
 
     final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
     final now = DateTime.now();
 
     final primaryColor = PdfColor.fromHex('6C5CE7');
-    final secondaryColor = PdfColor.fromHex('00CEC9');
-    final headerBgColor = PdfColor.fromHex('161B22');
-    final altRowColor = PdfColor.fromHex('F8F9FB');
     final textColor = PdfColor.fromHex('2D3748');
 
     doc.addPage(
@@ -165,18 +161,29 @@ class PdfService {
             ),
             headerHeight: 28,
             cellHeight: 24,
+            columnWidths: const {
+              0: pw.FixedColumnWidth(28),
+              1: pw.FlexColumnWidth(2.5),
+              2: pw.FlexColumnWidth(1.2),
+              3: pw.FlexColumnWidth(1.5),
+              4: pw.FlexColumnWidth(2.2),
+              5: pw.FlexColumnWidth(1.8),
+              6: pw.FlexColumnWidth(1.5),
+              7: pw.FlexColumnWidth(1.1),
+            },
             cellAlignments: {
               0: pw.Alignment.center,
               1: pw.Alignment.centerLeft,
               2: pw.Alignment.center,
               3: pw.Alignment.center,
               4: pw.Alignment.centerLeft,
-              5: pw.Alignment.center,
+              5: pw.Alignment.centerLeft,
               6: pw.Alignment.center,
+              7: pw.Alignment.center,
             },
             cellStyle: pw.TextStyle(
               font: fontRegular,
-              fontSize: 9,
+              fontSize: 8.5,
               color: textColor,
             ),
             rowDecoration: pw.BoxDecoration(
@@ -187,6 +194,7 @@ class PdfService {
               'Ürün Adı',
               'Miktar',
               'Lokasyon / Depo',
+              'Nasıl Alındı',
               'Ekleyen Kişi',
               'Eklenme Tarihi',
               'Durum',
@@ -202,6 +210,7 @@ class PdfService {
                 p.name,
                 qtyText,
                 p.depot.isNotEmpty ? p.depot : '-',
+                p.purchaseType.isNotEmpty ? p.purchaseType : '-',
                 p.createdByName.isNotEmpty ? p.createdByName : 'Bilinmeyen',
                 dateText,
                 isLow ? 'Kritik Stok' : 'Normal',

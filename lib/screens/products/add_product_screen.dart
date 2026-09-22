@@ -34,6 +34,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Uint8List? _imageBytes;
   String _selectedUnit = AppConstants.unitTypes[0];
+  String _selectedPurchaseType = AppConstants.purchaseTypes[0];
   int _selectedNumber = AppConstants.depotNumbers[0];
   String _selectedLetter = AppConstants.depotLetters[0];
   bool _useSpecialDepot = false;
@@ -65,6 +66,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _selectedNumber = parsed.number;
       _selectedLetter = parsed.letter;
       _useSpecialDepot = parsed.special;
+      if (AppConstants.purchaseTypes.contains(product.purchaseType)) {
+        _selectedPurchaseType = product.purchaseType;
+      }
     }
   }
 
@@ -240,6 +244,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         createdByName: widget.product?.createdByName ?? user.displayName ?? 'Bilinmeyen',
         createdAt: widget.product?.createdAt ?? DateTime.now(),
         minQuantity: minQuantity,
+        purchaseType: _selectedPurchaseType,
       );
 
       if (_isEditing) {
@@ -652,6 +657,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           isSelected: _useSpecialDepot,
                           onTap: () => setState(() => _useSpecialDepot = true),
                         ),
+                        const SizedBox(height: 24),
+                        // Nasıl Alındı?
+                        const Text(
+                          'Nasıl Alındı?',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildPurchaseTypeOption(
+                          title: AppConstants.purchaseTypes[0],
+                          value: AppConstants.purchaseTypes[0],
+                          icon: Icons.storefront_rounded,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildPurchaseTypeOption(
+                          title: AppConstants.purchaseTypes[1],
+                          value: AppConstants.purchaseTypes[1],
+                          icon: Icons.account_balance_rounded,
+                        ),
                         const SizedBox(height: 32),
                         // Kaydet butonu
                         SizedBox(
@@ -741,6 +768,80 @@ class _AddProductScreenState extends State<AddProductScreen> {
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPurchaseTypeOption({
+    required String title,
+    required String value,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedPurchaseType == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPurchaseType = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withValues(alpha: 0.15)
+              : AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryColor
+                : AppTheme.cardBorderColor,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : AppTheme.textSecondary.withValues(alpha: 0.5),
+              size: 20,
+            ),
+          ],
         ),
       ),
     );

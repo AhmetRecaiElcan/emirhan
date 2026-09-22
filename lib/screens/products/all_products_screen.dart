@@ -21,6 +21,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedDepot = 'Tümü';
+  String _selectedPurchaseType = 'Tümü';
   bool _isPrinting = false;
   List<ProductModel> _currentFilteredProducts = [];
 
@@ -31,12 +32,19 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   }
 
   List<String> _depotFilters(List<ProductModel> products) {
-    final depots = products.map((p) => p.depot).toSet().toList()..sort();
+    final depots = products
+        .map((p) => p.depot.trim())
+        .where((d) => d.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return ['Tümü', ...depots];
   }
 
   Future<void> _exportPdf() async {
     if (_isPrinting) return;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUserName = authService.currentUser?.displayName;
     setState(() => _isPrinting = true);
 
     try {
@@ -44,13 +52,16 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       if (productsToPrint.isEmpty) {
         final all = await _firestoreService.getProducts().first;
         final selectedDepot = _selectedDepot;
+        final selectedPurchaseType = _selectedPurchaseType;
         productsToPrint = all.where((product) {
           final matchesSearch = product.name
               .toLowerCase()
               .contains(_searchQuery.toLowerCase());
           final matchesDepot = selectedDepot == 'Tümü' ||
               product.depot == selectedDepot;
-          return matchesSearch && matchesDepot;
+          final matchesPurchaseType = selectedPurchaseType == 'Tümü' ||
+              product.purchaseType == selectedPurchaseType;
+          return matchesSearch && matchesDepot && matchesPurchaseType;
         }).toList();
       }
 
@@ -71,11 +82,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         return;
       }
 
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final currentUserName = authService.currentUser?.displayName;
-
       await PdfService.generateAndPrintProductList(
-        products: _currentFilteredProducts,
+        products: productsToPrint,
         currentUserName: currentUserName,
       );
     } catch (e) {
@@ -89,6 +97,86 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    Color? activeColor,
+    int? count,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? (activeColor != null
+                  ? LinearGradient(
+                      colors: [activeColor, activeColor.withValues(alpha: 0.8)])
+                  : AppTheme.primaryGradient)
+              : null,
+          color: isSelected ? null : AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : AppTheme.cardBorderColor,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color:
+                        (activeColor ?? AppTheme.primaryColor).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? Colors.white : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : AppTheme.primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.primaryColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -264,67 +352,119 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                 }
 
                 final allProducts = snapshot.data ?? [];
-                final filters = _depotFilters(allProducts);
+                final depotFilters = _depotFilters(allProducts);
                 final selectedDepot =
-                    filters.contains(_selectedDepot) ? _selectedDepot : 'Tümü';
+                    depotFilters.contains(_selectedDepot) ? _selectedDepot : 'Tümü';
                 final products = allProducts.where((product) {
                   final matchesSearch = product.name
                       .toLowerCase()
                       .contains(_searchQuery.toLowerCase());
                   final matchesDepot = selectedDepot == 'Tümü' ||
                       product.depot == selectedDepot;
-                  return matchesSearch && matchesDepot;
+                  final matchesPurchaseType = _selectedPurchaseType == 'Tümü' ||
+                      product.purchaseType == _selectedPurchaseType;
+                  return matchesSearch && matchesDepot && matchesPurchaseType;
                 }).toList();
                 _currentFilteredProducts = products;
 
+                final hasActiveFilter = _selectedPurchaseType != 'Tümü' ||
+                    selectedDepot != 'Tümü' ||
+                    _searchQuery.isNotEmpty;
+
                 return Column(
                   children: [
+                    // Alım Şekli Filtresi
                     SizedBox(
                       height: 38,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: filters.map((label) {
-                          final isSelected = selectedDepot == label;
-                          return GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedDepot = label),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                gradient: isSelected
-                                    ? AppTheme.primaryGradient
-                                    : null,
-                                color:
-                                    isSelected ? null : AppTheme.surfaceColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? Colors.transparent
-                                      : AppTheme.cardBorderColor,
-                                ),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppTheme.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        children: [
+                          _buildFilterChip(
+                            label: 'Tüm Alımlar',
+                            icon: Icons.layers_rounded,
+                            isSelected: _selectedPurchaseType == 'Tümü',
+                            onTap: () => setState(() => _selectedPurchaseType = 'Tümü'),
+                            count: allProducts
+                                .where((p) =>
+                                    selectedDepot == 'Tümü' || p.depot == selectedDepot)
+                                .length,
+                          ),
+                          _buildFilterChip(
+                            label: 'İşletme Geliriyle Alınanlar',
+                            icon: Icons.business_center_rounded,
+                            isSelected: _selectedPurchaseType ==
+                                'İşletme Geliriyle Alınanlar',
+                            activeColor: const Color(0xFF6C5CE7),
+                            onTap: () => setState(() =>
+                                _selectedPurchaseType = 'İşletme Geliriyle Alınanlar'),
+                            count: allProducts
+                                .where((p) =>
+                                    p.purchaseType == 'İşletme Geliriyle Alınanlar' &&
+                                    (selectedDepot == 'Tümü' || p.depot == selectedDepot))
+                                .length,
+                          ),
+                          _buildFilterChip(
+                            label: 'Devlet Kredisiyle Alınanlar',
+                            icon: Icons.account_balance_rounded,
+                            isSelected: _selectedPurchaseType ==
+                                'Devlet Kredisiyle Alınanlar',
+                            activeColor: const Color(0xFF00CEC9),
+                            onTap: () => setState(() =>
+                                _selectedPurchaseType = 'Devlet Kredisiyle Alınanlar'),
+                            count: allProducts
+                                .where((p) =>
+                                    p.purchaseType == 'Devlet Kredisiyle Alınanlar' &&
+                                    (selectedDepot == 'Tümü' || p.depot == selectedDepot))
+                                .length,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
+
+                    // Lokasyon / Depo Filtresi
+                    if (depotFilters.length > 1) ...[
+                      SizedBox(
+                        height: 34,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: depotFilters.map((label) {
+                            final isSelected = selectedDepot == label;
+                            final displayLabel = label == 'Tümü'
+                                ? 'Tüm Lokasyonlar'
+                                : (label.toLowerCase().startsWith('depo')
+                                    ? label
+                                    : 'Depo $label');
+                            final count = label == 'Tümü'
+                                ? allProducts
+                                    .where((p) =>
+                                        _selectedPurchaseType == 'Tümü' ||
+                                        p.purchaseType == _selectedPurchaseType)
+                                    .length
+                                : allProducts
+                                    .where((p) =>
+                                        p.depot == label &&
+                                        (_selectedPurchaseType == 'Tümü' ||
+                                            p.purchaseType == _selectedPurchaseType))
+                                    .length;
+                            return _buildFilterChip(
+                              label: displayLabel,
+                              icon: label == 'Tümü'
+                                  ? Icons.location_on_outlined
+                                  : Icons.warehouse_rounded,
+                              isSelected: isSelected,
+                              onTap: () => setState(() => _selectedDepot = label),
+                              count: count,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    const SizedBox(height: 4),
+
                     Expanded(
                       child: products.isEmpty
                           ? Center(
@@ -338,13 +478,33 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                     size: 64,
                                   ),
                                   const SizedBox(height: 16),
-                                  const Text(
-                                    'Henüz ürün bulunmuyor',
-                                    style: TextStyle(
+                                  Text(
+                                    hasActiveFilter
+                                        ? 'Seçilen filtrelere uygun ürün bulunamadı'
+                                        : 'Henüz ürün bulunmuyor',
+                                    style: const TextStyle(
                                       color: AppTheme.textSecondary,
                                       fontSize: 16,
                                     ),
                                   ),
+                                  if (hasActiveFilter) ...[
+                                    const SizedBox(height: 12),
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchController.clear();
+                                          _searchQuery = '';
+                                          _selectedDepot = 'Tümü';
+                                          _selectedPurchaseType = 'Tümü';
+                                        });
+                                      },
+                                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                                      label: const Text('Filtreleri Temizle'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             )

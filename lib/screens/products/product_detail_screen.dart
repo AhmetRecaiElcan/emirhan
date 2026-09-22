@@ -186,6 +186,66 @@ class ProductDetailScreen extends StatelessWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceColor,
+                              borderRadius: BorderRadius.circular(14),
+                              border:
+                                  Border.all(color: AppTheme.cardBorderColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: (currentProduct.purchaseType
+                                                .contains('Devlet')
+                                            ? AppTheme.accentColor
+                                            : AppTheme.primaryColor)
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    currentProduct.purchaseType
+                                            .contains('Devlet')
+                                        ? Icons.account_balance_rounded
+                                        : Icons.storefront_rounded,
+                                    color: currentProduct.purchaseType
+                                            .contains('Devlet')
+                                        ? AppTheme.accentColor
+                                        : AppTheme.primaryColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Alım Şekli / Nasıl Alındı',
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      currentProduct.purchaseType,
+                                      style: const TextStyle(
+                                        color: AppTheme.textPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 20),
                           // Stok azaltma butonu (sadece ürün sahibi)
                           if (isOwner) ...[

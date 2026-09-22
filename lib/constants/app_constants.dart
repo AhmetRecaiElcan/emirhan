@@ -46,6 +46,11 @@ class AppConstants {
     'Lt',
   ];
 
+  static const List<String> purchaseTypes = [
+    'İşletme Geliriyle Alınanlar',
+    'Devlet Kredisiyle Alınanlar',
+  ];
+
   static const String appName = 'Ambar Stok';
   static const String organizationName = 'İkmal Kısım Amirliği';
 }
