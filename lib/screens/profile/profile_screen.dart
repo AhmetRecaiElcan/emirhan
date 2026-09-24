@@ -148,21 +148,45 @@ class ProfileScreen extends StatelessWidget {
             // Çıkış butonu
             SizedBox(
               width: double.infinity,
-              height: 54,
+              height: 52,
               child: OutlinedButton.icon(
                 onPressed: () => _showLogoutDialog(context, authService),
-                icon: const Icon(Icons.logout_rounded, color: AppTheme.errorColor),
+                icon: const Icon(Icons.logout_rounded, color: AppTheme.textSecondary),
                 label: const Text(
                   'Çıkış Yap',
                   style: TextStyle(
-                    color: AppTheme.errorColor,
+                    color: AppTheme.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                      color: AppTheme.errorColor.withValues(alpha: 0.5)),
+                  side: const BorderSide(color: AppTheme.cardBorderColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Profili Sil butonu
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: () => _showDeleteProfileDialog(context, authService),
+                icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 20),
+                label: const Text(
+                  'Profili Sil',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.errorColor.withValues(alpha: 0.9),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -233,6 +257,78 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteProfileDialog(BuildContext context, AuthService authService) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Profili Sil',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Bu kullanıcı hesabı silinecektir.\n\n✓ Eklediğiniz ürünler silinmez, ambarda kalmaya devam eder.\n✓ Yaptığınız tüm işlem geçmişi aynen korunur.\n\nEmin misiniz?',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await authService.deleteCurrentProfile();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Profil veritabanından başarıyla silindi'),
+                      backgroundColor: AppTheme.cardColor,
+                    ),
+                  );
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                        builder: (_) => const ProfilePickerScreen()),
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Profil silinirken hata: $e'),
+                      backgroundColor: AppTheme.cardColor,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Evet, Profili Sil'),
+          ),
+        ],
       ),
     );
   }

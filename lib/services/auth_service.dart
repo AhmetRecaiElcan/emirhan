@@ -119,6 +119,41 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Mevcut profili ve Firestore kaydını sil
+  Future<void> deleteCurrentProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+
+    // 1. Firestore 'users' koleksiyonundan profili sil
+    await _firestore.collection('users').doc(uid).delete();
+
+    // 2. Firebase Authentication'dan kullanıcıyı sil
+    try {
+      await user.delete();
+    } catch (e) {
+      debugPrint('FirebaseAuth delete uyarısı (signOut yapılıyor): $e');
+      await _auth.signOut();
+    }
+    notifyListeners();
+  }
+
+  // Belirli bir UID'ye ait profili Firestore'dan sil
+  Future<void> deleteProfileByUid(String uid) async {
+    // 1. Firestore'dan kullanıcı belgesini sil
+    await _firestore.collection('users').doc(uid).delete();
+
+    // 2. Eğer o kullanıcı oturum açmışsa oturumu kapat veya auth'tan sil
+    if (_auth.currentUser?.uid == uid) {
+      try {
+        await _auth.currentUser?.delete();
+      } catch (e) {
+        await _auth.signOut();
+      }
+    }
+    notifyListeners();
+  }
+
   Future<String?> sendVerificationEmail() async {
     try {
       await _auth.currentUser?.sendEmailVerification();

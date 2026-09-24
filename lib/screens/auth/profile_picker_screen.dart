@@ -62,6 +62,7 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
                           ...profiles.map((p) => _ProfileTile(
                                 name: p.displayName,
                                 onTap: () => _askPassword(p),
+                                onDelete: () => _confirmDeleteProfile(p),
                               )),
                           if (canAdd)
                             _ProfileTile(
@@ -96,6 +97,75 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteProfile(UserModel profile) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Profili Sil',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '${profile.displayName} kullanıcı hesabı silinecektir.\n\n✓ Eklenen ürünler silinmez, ambarda kalmaya devam eder.\n✓ Yapılan işlem geçmişi aynen korunur.\n\nEmin misiniz?',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Evet, Sil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await authService.deleteProfileByUid(profile.uid);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profil başarıyla silindi'),
+              backgroundColor: AppTheme.cardColor,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Hata: $e'),
+              backgroundColor: AppTheme.cardColor,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _askPassword(UserModel profile) async {
@@ -327,11 +397,13 @@ class _ProfileTile extends StatelessWidget {
   final String name;
   final bool isAdd;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const _ProfileTile({
     required this.name,
     required this.onTap,
     this.isAdd = false,
+    this.onDelete,
   });
 
   String get _initials {
@@ -347,41 +419,80 @@ class _ProfileTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onDelete,
       child: Column(
         children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              gradient: isAdd ? null : AppTheme.primaryGradient,
-              color: isAdd ? AppTheme.surfaceColor : null,
-              borderRadius: BorderRadius.circular(18),
-              border: isAdd
-                  ? Border.all(color: AppTheme.cardBorderColor, width: 2)
-                  : null,
-              boxShadow: isAdd
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.35),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-            ),
-            child: Center(
-              child: isAdd
-                  ? const Icon(Icons.add_rounded,
-                      color: AppTheme.textSecondary, size: 42)
-                  : Text(
-                      _initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  gradient: isAdd ? null : AppTheme.primaryGradient,
+                  color: isAdd ? AppTheme.surfaceColor : null,
+                  borderRadius: BorderRadius.circular(18),
+                  border: isAdd
+                      ? Border.all(color: AppTheme.cardBorderColor, width: 2)
+                      : null,
+                  boxShadow: isAdd
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                ),
+                child: Center(
+                  child: isAdd
+                      ? const Icon(Icons.add_rounded,
+                          color: AppTheme.textSecondary, size: 42)
+                      : Text(
+                          _initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                ),
+              ),
+              if (!isAdd && onDelete != null)
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: onDelete,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.errorColor.withValues(alpha: 0.6),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 14,
+                          color: AppTheme.errorColor,
+                        ),
                       ),
                     ),
-            ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           SizedBox(

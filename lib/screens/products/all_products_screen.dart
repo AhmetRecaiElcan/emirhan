@@ -38,9 +38,29 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     super.dispose();
   }
 
+  String _normalizeDepot(String depot) {
+    final d = depot.trim();
+    final lower = d.toLowerCase();
+    if (lower == 'z1' ||
+        lower == 'zemin 1' ||
+        lower == 'zemin1' ||
+        lower == 'depoz1' ||
+        lower == 'depo z1') {
+      return 'Zemin 1';
+    }
+    // 'depo' yazılarını komple filtrelemeden kaldır
+    return d.replaceAll(RegExp(r'^depo\s*', caseSensitive: false), '').trim();
+  }
+
+  bool _matchesDepot(String productDepot, String selectedFilter) {
+    if (selectedFilter == 'Tümü') return true;
+    return _normalizeDepot(productDepot).toLowerCase() ==
+        _normalizeDepot(selectedFilter).toLowerCase();
+  }
+
   List<String> _depotFilters(List<ProductModel> products) {
     final depots = products
-        .map((p) => p.depot.trim())
+        .map((p) => _normalizeDepot(p.depot))
         .where((d) => d.isNotEmpty)
         .toSet()
         .toList()
@@ -64,8 +84,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           final matchesSearch = product.name
               .toLowerCase()
               .contains(_searchQuery.toLowerCase());
-          final matchesDepot = selectedDepot == 'Tümü' ||
-              product.depot == selectedDepot;
+          final matchesDepot = _matchesDepot(product.depot, selectedDepot);
           final matchesPurchaseType = selectedPurchaseType == 'Tümü' ||
               product.purchaseType == selectedPurchaseType;
           return matchesSearch && matchesDepot && matchesPurchaseType;
@@ -489,8 +508,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   final matchesSearch = product.name
                       .toLowerCase()
                       .contains(_searchQuery.toLowerCase());
-                  final matchesDepot = selectedDepot == 'Tümü' ||
-                      product.depot == selectedDepot;
+                  final matchesDepot = _matchesDepot(product.depot, selectedDepot);
                   final matchesPurchaseType = _selectedPurchaseType == 'Tümü' ||
                       product.purchaseType == _selectedPurchaseType;
                   return matchesSearch && matchesDepot && matchesPurchaseType;
@@ -514,8 +532,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           isSelected: _selectedPurchaseType == 'Tümü',
                           onTap: () => setState(() => _selectedPurchaseType = 'Tümü'),
                           count: allProducts
-                              .where((p) =>
-                                  selectedDepot == 'Tümü' || p.depot == selectedDepot)
+                              .where((p) => _matchesDepot(p.depot, selectedDepot))
                               .length,
                         ),
                         _buildFilterChip(
@@ -529,7 +546,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           count: allProducts
                               .where((p) =>
                                   p.purchaseType == 'İşletme Geliriyle Alınanlar' &&
-                                  (selectedDepot == 'Tümü' || p.depot == selectedDepot))
+                                  _matchesDepot(p.depot, selectedDepot))
                               .length,
                         ),
                         _buildFilterChip(
@@ -543,7 +560,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           count: allProducts
                               .where((p) =>
                                   p.purchaseType == 'Devlet Kredisiyle Alınanlar' &&
-                                  (selectedDepot == 'Tümü' || p.depot == selectedDepot))
+                                  _matchesDepot(p.depot, selectedDepot))
                               .length,
                         ),
                       ],
@@ -557,12 +574,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                         height: 34,
                         children: depotFilters.map((label) {
                           final isSelected = selectedDepot == label;
-                          final displayLabel = label == 'Tümü'
-                              ? 'Tüm Lokasyonlar'
-                              : (label.toLowerCase().startsWith('depo') ||
-                                      label.toLowerCase().startsWith('zemin')
-                                  ? label
-                                  : 'Depo $label');
+                          final displayLabel =
+                              label == 'Tümü' ? 'Tüm Lokasyonlar' : label;
                           final count = label == 'Tümü'
                               ? allProducts
                                   .where((p) =>
@@ -571,7 +584,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                   .length
                               : allProducts
                                   .where((p) =>
-                                      p.depot == label &&
+                                      _matchesDepot(p.depot, label) &&
                                       (_selectedPurchaseType == 'Tümü' ||
                                           p.purchaseType == _selectedPurchaseType))
                                   .length;
