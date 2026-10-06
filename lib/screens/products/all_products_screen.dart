@@ -68,49 +68,255 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     return ['Tümü', ...depots];
   }
 
-  Future<void> _exportPdf() async {
+  Future<void> _showPdfExportDialog() async {
+    if (_isPrinting) return;
+
+    List<ProductModel> productsToPrint = List.from(_currentFilteredProducts);
+    if (productsToPrint.isEmpty) {
+      final all = await _firestoreService.getProducts().first;
+      final selectedDepot = _selectedDepot;
+      final selectedPurchaseType = _selectedPurchaseType;
+      productsToPrint = all.where((product) {
+        final matchesSearch = product.name
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase());
+        final matchesDepot = _matchesDepot(product.depot, selectedDepot);
+        final matchesPurchaseType = selectedPurchaseType == 'Tümü' ||
+            product.purchaseType == selectedPurchaseType;
+        return matchesSearch && matchesDepot && matchesPurchaseType;
+      }).toList();
+    }
+
+    if (productsToPrint.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: AppTheme.warningColor),
+              SizedBox(width: 8),
+              Text('Yazdırılacak ürün bulunmuyor'),
+            ],
+          ),
+          backgroundColor: AppTheme.cardColor,
+        ),
+      );
+      return;
+    }
+
+    PdfSortOption selectedOption = PdfSortOption.location;
+
+    if (!mounted) return;
+    final result = await showDialog<PdfSortOption>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: AppTheme.cardBorderColor),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'PDF Raporu & Sıralama',
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.cardBorderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.inventory_2_outlined,
+                              color: AppTheme.primaryColor,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${productsToPrint.length} adet ürün rapora eklenecek',
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Sıralama Ölçütü Seçin:',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...PdfSortOption.values.map((option) {
+                        final isSelected = selectedOption == option;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              setDialogState(() {
+                                selectedOption = option;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 11),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor
+                                        .withValues(alpha: 0.15)
+                                    : AppTheme.surfaceColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.cardBorderColor,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    option == PdfSortOption.location
+                                        ? Icons.warehouse_rounded
+                                        : option == PdfSortOption.alphabeticalAsc ||
+                                                option == PdfSortOption.alphabeticalDesc
+                                            ? Icons.sort_by_alpha_rounded
+                                            : option == PdfSortOption.quantityDesc
+                                                ? Icons.format_list_numbered_rounded
+                                                : Icons.calendar_month_rounded,
+                                    color: isSelected
+                                        ? AppTheme.primaryColor
+                                        : AppTheme.textSecondary,
+                                    size: 19,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          option.label,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? AppTheme.textPrimary
+                                                : AppTheme.textSecondary,
+                                            fontSize: 13.5,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (option == PdfSortOption.location)
+                                          const Text(
+                                            'Önce Zemin, sonra 1, 2, 3.. 9 lokasyonları',
+                                            style: TextStyle(
+                                              color: AppTheme.primaryColor,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: AppTheme.primaryColor,
+                                      size: 18,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  child: const Text('İptal'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx, selectedOption),
+                  icon: const Icon(Icons.print_rounded, size: 18),
+                  label: const Text('Yazdır / PDF Al'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      await _exportPdf(result, productsToPrint);
+    }
+  }
+
+  Future<void> _exportPdf(
+      PdfSortOption sortOption, List<ProductModel> productsToPrint) async {
     if (_isPrinting) return;
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUserName = authService.currentUser?.displayName;
     setState(() => _isPrinting = true);
 
     try {
-      List<ProductModel> productsToPrint = List.from(_currentFilteredProducts);
-      if (productsToPrint.isEmpty) {
-        final all = await _firestoreService.getProducts().first;
-        final selectedDepot = _selectedDepot;
-        final selectedPurchaseType = _selectedPurchaseType;
-        productsToPrint = all.where((product) {
-          final matchesSearch = product.name
-              .toLowerCase()
-              .contains(_searchQuery.toLowerCase());
-          final matchesDepot = _matchesDepot(product.depot, selectedDepot);
-          final matchesPurchaseType = selectedPurchaseType == 'Tümü' ||
-              product.purchaseType == selectedPurchaseType;
-          return matchesSearch && matchesDepot && matchesPurchaseType;
-        }).toList();
-      }
-
-      if (productsToPrint.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.warningColor),
-                SizedBox(width: 8),
-                Text('Yazdırılacak ürün bulunmuyor'),
-              ],
-            ),
-            backgroundColor: AppTheme.cardColor,
-          ),
-        );
-        return;
-      }
-
       await PdfService.generateAndPrintProductList(
         products: productsToPrint,
         currentUserName: currentUserName,
+        sortOption: sortOption,
       );
     } catch (e) {
       if (!mounted) return;
@@ -382,7 +588,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
-                      onTap: _exportPdf,
+                      onTap: _showPdfExportDialog,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
@@ -665,6 +871,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                       MaterialPageRoute(
                                         builder: (_) => ProductDetailScreen(
                                           product: products[index],
+                                          productList: products,
+                                          initialIndex: index,
                                         ),
                                       ),
                                     );

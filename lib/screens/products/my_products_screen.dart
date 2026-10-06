@@ -197,6 +197,8 @@ class MyProductsScreen extends StatelessWidget {
                            MaterialPageRoute(
                             builder: (_) => ProductDetailScreen(
                               product: products[index],
+                              productList: products,
+                              initialIndex: index,
                             ),
                           ),
                         );

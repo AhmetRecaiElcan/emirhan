@@ -4,11 +4,107 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/product_model.dart';
 
+enum PdfSortOption {
+  location('Lokasyona Göre (Zemin, 1, 2, 3...)'),
+  alphabeticalAsc('Ürün Adı (A → Z)'),
+  alphabeticalDesc('Ürün Adı (Z → A)'),
+  dateNewest('Eklenme Tarihi (En Yeni)'),
+  dateOldest('Eklenme Tarihi (En Eski)'),
+  quantityDesc('Miktar (En Çoktan Aza)');
+
+  final String label;
+  const PdfSortOption(this.label);
+}
+
 class PdfService {
+  /// Ürünleri belirtilen sıralama ölçütüne göre sıralar
+  static List<ProductModel> sortProducts(
+    List<ProductModel> products,
+    PdfSortOption sortOption,
+  ) {
+    final list = List<ProductModel>.from(products);
+    switch (sortOption) {
+      case PdfSortOption.location:
+        list.sort((a, b) {
+          final locComp = _compareLocations(a.depot, b.depot);
+          if (locComp != 0) return locComp;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+        break;
+      case PdfSortOption.alphabeticalAsc:
+        list.sort((a, b) =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case PdfSortOption.alphabeticalDesc:
+        list.sort((a, b) =>
+            b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case PdfSortOption.dateNewest:
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case PdfSortOption.dateOldest:
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case PdfSortOption.quantityDesc:
+        list.sort((a, b) => b.quantity.compareTo(a.quantity));
+        break;
+    }
+    return list;
+  }
+
+  /// Lokasyon karşılaştırması:
+  /// 1. Zemin (Z, Z1, Zemin, Zemin 1, Depo Z1 vb.) her zaman ilk sırada gelir (0).
+  /// 2. Sonra sayısal lokasyonlar (1A, 1B -> 2A -> 3... 9, 10 vb.)
+  /// 3. Son olarak diğer/tanımsız lokasyonlar gelir.
+  static int _compareLocations(String locA, String locB) {
+    final rankA = _getLocationRank(locA);
+    final rankB = _getLocationRank(locB);
+
+    if (rankA.category != rankB.category) {
+      return rankA.category.compareTo(rankB.category);
+    }
+
+    final subComp = rankA.sub.compareTo(rankB.sub);
+    if (subComp != 0) return subComp;
+
+    return locA.toLowerCase().compareTo(locB.toLowerCase());
+  }
+
+  static ({int category, String sub}) _getLocationRank(String depot) {
+    final d = depot.trim().toLowerCase();
+    if (d.isEmpty) return (category: 999, sub: '');
+
+    // 'depo ' ön ekini temizle
+    final clean = d.replaceAll(RegExp(r'^depo\s*'), '').trim();
+
+    // Zemin / Z1 / Zemin 1 kontrolleri -> Kategori 0
+    if (clean.startsWith('zemin') ||
+        clean.startsWith('z1') ||
+        clean == 'z' ||
+        clean.startsWith('z ')) {
+      final sub = clean.replaceAll(RegExp(r'^z(emin)?\s*'), '');
+      return (category: 0, sub: sub);
+    }
+
+    // 1A, 2B, 10C gibi numara ve harf kontrolleri
+    final match = RegExp(r'^(\d+)(.*)$').firstMatch(clean);
+    if (match != null) {
+      final num = int.tryParse(match.group(1)!) ?? 999;
+      final rest = (match.group(2) ?? '').trim();
+      return (category: num, sub: rest);
+    }
+
+    return (category: 999, sub: clean);
+  }
+
   static Future<void> generateAndPrintProductList({
     required List<ProductModel> products,
     String? currentUserName,
+    PdfSortOption sortOption = PdfSortOption.location,
   }) async {
+    // Ürünleri seçilen sıralama kuralına göre sırala
+    final sortedProducts = sortProducts(products, sortOption);
+
     final doc = pw.Document();
 
     // Türkçe karakter desteği için Roboto fontları
@@ -70,10 +166,10 @@ class PdfService {
                           ),
                         ),
                         pw.Text(
-                          'Depo Envanter ve Ürün Listesi',
+                          'Depo Envanter ve Ürün Listesi  •  Sıralama: ${sortOption.label}',
                           style: pw.TextStyle(
                             font: fontRegular,
-                            fontSize: 10,
+                            fontSize: 9.5,
                             color: PdfColors.grey700,
                           ),
                         ),
@@ -102,7 +198,7 @@ class PdfService {
                         ),
                       ),
                     pw.Text(
-                      'Toplam Ürün: ${products.length} adet',
+                      'Toplam Ürün: ${sortedProducts.length} adet',
                       style: pw.TextStyle(
                         font: fontBold,
                         fontSize: 9,
@@ -126,7 +222,7 @@ class PdfService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'Ambar Stok Yönetim Sistemi',
+                  'Ambar Stok Yönetim Sistemi  |  Sıralama: ${sortOption.label}',
                   style: pw.TextStyle(
                     font: fontRegular,
                     fontSize: 8,
@@ -186,7 +282,7 @@ class PdfService {
               fontSize: 8.5,
               color: textColor,
             ),
-            rowDecoration: pw.BoxDecoration(
+            rowDecoration: const pw.BoxDecoration(
               color: PdfColors.white,
             ),
             headers: [
@@ -199,11 +295,13 @@ class PdfService {
               'Eklenme Tarihi',
               'Durum',
             ],
-            data: List.generate(products.length, (index) {
-              final p = products[index];
+            data: List.generate(sortedProducts.length, (index) {
+              final p = sortedProducts[index];
               final isLow = p.isLowStock;
-              final qtyText = '${p.quantity == p.quantity.toInt() ? p.quantity.toInt() : p.quantity} ${p.unit}';
-              final dateText = DateFormat('dd.MM.yyyy HH:mm').format(p.createdAt);
+              final qtyText =
+                  '${p.quantity == p.quantity.toInt() ? p.quantity.toInt() : p.quantity} ${p.unit}';
+              final dateText =
+                  DateFormat('dd.MM.yyyy HH:mm').format(p.createdAt);
 
               return [
                 (index + 1).toString(),
@@ -223,7 +321,8 @@ class PdfService {
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Ambar_Stok_Urun_Listesi_${DateFormat('yyyyMMdd_HHmm').format(now)}.pdf',
+      name:
+          'Ambar_Stok_Urun_Listesi_${DateFormat('yyyyMMdd_HHmm').format(now)}.pdf',
     );
   }
 }
