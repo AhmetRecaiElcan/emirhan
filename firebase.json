@@ -4,7 +4,6 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "site": "deneyap-8666b",
     "public": "build/web",
     "ignore": [
       "firebase.json",
@@ -36,16 +35,16 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "deneyap-8666b",
-          "appId": "1:1089075260680:android:7060e959fddbd55660d0bd",
+          "projectId": "emrullah-b3836",
+          "appId": "1:586775658888:android:3a29812f5be59193fd3a3d",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "deneyap-8666b",
+          "projectId": "emrullah-b3836",
           "configurations": {
-            "android": "1:1089075260680:android:7060e959fddbd55660d0bd"
+            "android": "1:586775658888:android:3a29812f5be59193fd3a3d"
           }
         }
       }

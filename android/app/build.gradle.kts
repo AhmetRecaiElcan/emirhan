@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.deneyap.depo"
+    namespace = "com.emirhan.depo"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.deneyap.depo"
+        applicationId = "com.emirhan.depo"
         // Firebase Auth / Firestore için en az 23
         minSdk = maxOf(flutter.minSdkVersion, 23)
         targetSdk = flutter.targetSdkVersion
