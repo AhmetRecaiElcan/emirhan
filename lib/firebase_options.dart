@@ -37,29 +37,28 @@ class DefaultFirebaseOptions {
 
   // Android — google-services.json
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAlamv3YVgD9gC0TtVHWdEMMrsVoBbFsGY',
-    appId: '1:586775658888:android:3a29812f5be59193fd3a3d',
-    messagingSenderId: '586775658888',
-    projectId: 'emrullah-b3836',
-    storageBucket: 'emrullah-b3836.firebasestorage.app',
+    apiKey: 'AIzaSyCtSiS2dCCjsQkd901TkJBI1ejtACU8deM',
+    appId: '1:1089075260680:android:7060e959fddbd55660d0bd',
+    messagingSenderId: '1089075260680',
+    projectId: 'deneyap-8666b',
+    storageBucket: 'deneyap-8666b.firebasestorage.app',
   );
 
-  // Web (Firebase Console: ikmalkısım - 1:586775658888:web:d732aec658d7f347fd3a3d)
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDVCaU76z0TkQ48HzpMLhXJIhitcrCpYY4',
-    appId: '1:586775658888:web:d732aec658d7f347fd3a3d',
-    messagingSenderId: '586775658888',
-    projectId: 'emrullah-b3836',
-    authDomain: 'emrullah-b3836.firebaseapp.com',
-    storageBucket: 'emrullah-b3836.firebasestorage.app',
+    apiKey: 'AIzaSyCtSiS2dCCjsQkd901TkJBI1ejtACU8deM',
+    appId: '1:1089075260680:android:7060e959fddbd55660d0bd',
+    messagingSenderId: '1089075260680',
+    projectId: 'deneyap-8666b',
+    authDomain: 'deneyap-8666b.firebaseapp.com',
+    storageBucket: 'deneyap-8666b.firebasestorage.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAlamv3YVgD9gC0TtVHWdEMMrsVoBbFsGY',
-    appId: '1:586775658888:android:3a29812f5be59193fd3a3d',
-    messagingSenderId: '586775658888',
-    projectId: 'emrullah-b3836',
-    storageBucket: 'emrullah-b3836.firebasestorage.app',
-    authDomain: 'emrullah-b3836.firebaseapp.com',
+    apiKey: 'AIzaSyCtSiS2dCCjsQkd901TkJBI1ejtACU8deM',
+    appId: '1:1089075260680:android:7060e959fddbd55660d0bd',
+    messagingSenderId: '1089075260680',
+    projectId: 'deneyap-8666b',
+    storageBucket: 'deneyap-8666b.firebasestorage.app',
+    authDomain: 'deneyap-8666b.firebaseapp.com',
   );
 }

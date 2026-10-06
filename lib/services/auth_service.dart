@@ -199,6 +199,9 @@ class AuthService extends ChangeNotifier {
         return 'Çok fazla deneme yaptınız. Lütfen bekleyin.';
       case 'invalid-credential':
         return 'E-posta veya şifre hatalı.';
+      case 'operation-not-allowed':
+      case 'configuration-not-found':
+        return 'Firebase Authentication ayarı eksik! Firebase Console üzerinden E-posta/Şifre (Email/Password) oturum açma yöntemini etkinleştirmeniz gerekmektedir.';
       default:
         return 'Bir hata oluştu: $code';
     }

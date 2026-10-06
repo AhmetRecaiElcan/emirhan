@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "586775658888",
-    "project_id": "emrullah-b3836",
-    "storage_bucket": "emrullah-b3836.firebasestorage.app"
+    "project_number": "1089075260680",
+    "project_id": "deneyap-8666b",
+    "storage_bucket": "deneyap-8666b.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:586775658888:android:3a29812f5be59193fd3a3d",
+        "mobilesdk_app_id": "1:1089075260680:android:7060e959fddbd55660d0bd",
         "android_client_info": {
-          "package_name": "com.emirhan.depo"
+          "package_name": "com.deneyap.depo"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAlamv3YVgD9gC0TtVHWdEMMrsVoBbFsGY"
+          "current_key": "AIzaSyCtSiS2dCCjsQkd901TkJBI1ejtACU8deM"
         }
       ],
       "services": {
