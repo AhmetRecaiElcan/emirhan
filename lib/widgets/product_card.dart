@@ -47,7 +47,7 @@ class ProductCard extends StatelessWidget {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(15)),
               child: AspectRatio(
-                aspectRatio: 1.3,
+                aspectRatio: 1.35,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -82,21 +82,28 @@ class ProductCard extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        color: low ? AppTheme.errorColor : AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(
+                          product.name,
+                          style: TextStyle(
+                            color:
+                                low ? AppTheme.errorColor : AppTheme.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                          ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Container(
@@ -139,14 +146,14 @@ class ProductCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 6),
                     if (showCreator)
                       Row(
                         children: [
                           const Icon(
                             Icons.person_outline_rounded,
                             color: AppTheme.textSecondary,
-                            size: 14,
+                            size: 13,
                           ),
                           const SizedBox(width: 4),
                           Expanded(

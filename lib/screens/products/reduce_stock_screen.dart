@@ -6,6 +6,7 @@ import '../../models/product_model.dart';
 import '../../models/transaction_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/storage_service.dart';
 import '../../services/transaction_service.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -52,6 +53,7 @@ class _ReduceStockScreenState extends State<ReduceStockScreen> {
       },
     );
     if (picked != null) {
+      if (!mounted) return;
       // Saat seçici
       final time = await showTimePicker(
         context: context,
@@ -94,13 +96,76 @@ class _ReduceStockScreenState extends State<ReduceStockScreen> {
       return;
     }
 
+    final isTotalDepletion = (widget.product.quantity - quantity) <= 0;
+
+    // Eğer ürünün tamamı veriliyorsa kullanıcıya onay penceresi göster
+    if (isTotalDepletion) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: AppTheme.cardBorderColor),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: AppTheme.warningColor, size: 28),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Ürün Tamamen Tükenecek',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Bu işlemi onaylarsanız ürünün tamamı (${_formatQuantity(quantity)} ${widget.product.unit}) verilmiş ve bitmiş olacaktır.\n\nİşlem geçmişi saklanacak, ancak tükenen ürünün bilgileri ve fotoğrafı veritabanından kalıcı olarak silinecektir.\n\nOnaylıyor musunuz?',
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.errorColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Evet, Onayla ve Sil'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) {
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      if (!mounted) return;
       final authService = Provider.of<AuthService>(context, listen: false);
       final user = authService.currentUser!;
 
-      // İşlem kaydı oluştur
+      // 1. İşlem kaydı oluştur (işlem geçmişinde her zaman saklanır)
       final transaction = TransactionModel(
         id: '',
         productId: widget.product.id,
@@ -117,28 +182,55 @@ class _ReduceStockScreenState extends State<ReduceStockScreen> {
 
       await _transactionService.addTransaction(transaction);
 
-      // Stok miktarını güncelle
-      final newQuantity = widget.product.quantity - quantity;
-      await _firestoreService.updateProductQuantity(
-          widget.product.id, newQuantity);
+      if (isTotalDepletion) {
+        // 2. Ürünü Firestore veritabanından sil
+        await _firestoreService.deleteProduct(widget.product.id);
+        // 3. Ürünün görselini Storage'dan sil
+        await StorageService().deleteProductImage(widget.product.id);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: AppTheme.successColor),
-              const SizedBox(width: 8),
-              Text(
-                  '${_formatQuantity(quantity)} ${widget.product.unit} başarıyla çıkarıldı'),
-            ],
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: AppTheme.successColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                      '${_formatQuantity(quantity)} ${widget.product.unit} verildi. Tükenen ürün veritabanından silindi.'),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.cardColor,
           ),
-          backgroundColor: AppTheme.cardColor,
-        ),
-      );
+        );
 
-      Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
+      } else {
+        // Stok miktarını güncelle
+        final newQuantity = widget.product.quantity - quantity;
+        await _firestoreService.updateProductQuantity(
+            widget.product.id, newQuantity);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: AppTheme.successColor),
+                const SizedBox(width: 8),
+                Text(
+                    '${_formatQuantity(quantity)} ${widget.product.unit} başarıyla çıkarıldı'),
+              ],
+            ),
+            backgroundColor: AppTheme.cardColor,
+          ),
+        );
+
+        Navigator.of(context).pop(false);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

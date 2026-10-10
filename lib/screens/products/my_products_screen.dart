@@ -183,7 +183,7 @@ class MyProductsScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
-                    childAspectRatio: 0.72,
+                    childAspectRatio: 0.67,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                   ),

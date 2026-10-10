@@ -67,16 +67,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
+  bool _isInputFocused() {
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus == null) return false;
+    final ctx = primaryFocus.context;
+    if (ctx == null) return false;
+
+    if (ctx.widget is EditableText) return true;
+    if (ctx.findAncestorWidgetOfExactType<EditableText>() != null) return true;
+    if (ctx.findAncestorWidgetOfExactType<TextField>() != null) return true;
+    if (ctx.findAncestorWidgetOfExactType<TextFormField>() != null) return true;
+
+    return false;
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
 
-    // Metin alanına yazı yazılıyorsa kısayolları tetikleme
-    final focusedWidget = FocusManager.instance.primaryFocus?.context?.widget;
-    if (focusedWidget is EditableText) {
+    // 1) Bu ekran şu anda en üstteki aktif ekran değilse (örn. üstüne Stok Azalt veya Düzenle ekranı açılmışsa) ASLA tuş yakalama!
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isCurrent) {
       return false;
     }
 
-    // 1) Backspace veya Escape tuşu ile önceki sayfaya dön
+    // 2) Herhangi bir metin giriş alanı odaklıysa tuş yakalama (kullanıcı sayı/yazı silerken sayfa geri dönmesin)
+    if (_isInputFocused()) {
+      return false;
+    }
+
+    // Backspace veya Escape tuşu ile önceki sayfaya dön
     if (event.logicalKey == LogicalKeyboardKey.backspace ||
         event.logicalKey == LogicalKeyboardKey.escape) {
       if (mounted && Navigator.of(context).canPop()) {
@@ -85,16 +104,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     }
 
-    // 2) Sağ yön tuşu -> Sonraki ürün
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    // Sadece Sağ yön tuşu -> Sonraki ürün
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
       _nextProduct();
       return true;
     }
 
-    // 3) Sol yön tuşu -> Önceki ürün
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    // Sadece Sol yön tuşu -> Önceki ürün
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       _prevProduct();
       return true;
     }
@@ -611,13 +628,17 @@ class _ProductDetailContent extends StatelessWidget {
                       height: 54,
                       child: ElevatedButton.icon(
                         onPressed: currentProduct.quantity > 0
-                            ? () {
-                                Navigator.of(context).push(
+                            ? () async {
+                                final deleted =
+                                    await Navigator.of(context).push<bool>(
                                   MaterialPageRoute(
                                     builder: (_) => ReduceStockScreen(
                                         product: currentProduct),
                                   ),
                                 );
+                                if (deleted == true && context.mounted) {
+                                  onDelete(currentProduct);
+                                }
                               }
                             : null,
                         icon: const Icon(
