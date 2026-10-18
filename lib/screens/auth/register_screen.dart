@@ -159,26 +159,28 @@ class _RegisterScreenState extends State<RegisterScreen>
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppTheme.secondaryColor,
-                              AppTheme.primaryColor
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
+                          color: AppTheme.cardColor,
+                          shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.secondaryColor
-                                  .withValues(alpha: 0.3),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.35),
                               blurRadius: 25,
                               spreadRadius: 3,
                             ),
                           ],
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.person_add_alt_1_rounded,
-                          color: Colors.white,
-                          size: 40,
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Image.asset(
+                              AppConstants.logoAsset,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

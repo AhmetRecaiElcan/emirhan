@@ -1,7 +1,9 @@
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../constants/app_constants.dart';
 import '../models/product_model.dart';
 
 enum PdfSortOption {
@@ -111,6 +113,13 @@ class PdfService {
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
 
+    // Logo yükleme
+    pw.MemoryImage? logoImage;
+    try {
+      final logoBytes = await rootBundle.load(AppConstants.logoAsset);
+      logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    } catch (_) {}
+
     final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
     final now = DateTime.now();
 
@@ -135,24 +144,31 @@ class PdfService {
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Container(
-                      width: 36,
-                      height: 36,
-                      decoration: pw.BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: pw.BorderRadius.circular(8),
-                      ),
-                      child: pw.Center(
-                        child: pw.Text(
-                          'A',
-                          style: pw.TextStyle(
-                            font: fontBold,
-                            color: PdfColors.white,
-                            fontSize: 20,
+                    if (logoImage != null)
+                      pw.Container(
+                        width: 42,
+                        height: 42,
+                        child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+                      )
+                    else
+                      pw.Container(
+                        width: 36,
+                        height: 36,
+                        decoration: pw.BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: pw.BorderRadius.circular(8),
+                        ),
+                        child: pw.Center(
+                          child: pw.Text(
+                            'A',
+                            style: pw.TextStyle(
+                              font: fontBold,
+                              color: PdfColors.white,
+                              fontSize: 20,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     pw.SizedBox(width: 12),
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,

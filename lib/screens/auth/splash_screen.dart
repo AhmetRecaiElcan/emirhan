@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
-import '../../services/auth_service.dart';
 import '../auth/profile_picker_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -82,23 +81,31 @@ class _SplashScreenState extends State<SplashScreen>
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
-                  width: 120,
-                  height: 120,
+                  width: 140,
+                  height: 140,
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(32),
+                    color: AppTheme.cardColor,
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.45),
                         blurRadius: 40,
-                        spreadRadius: 8,
+                        spreadRadius: 6,
                       ),
                     ],
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.inventory_2_rounded,
-                    color: Colors.white,
-                    size: 60,
+                  child: ClipOval(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.asset(
+                        AppConstants.logoAsset,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                 ),
               ),

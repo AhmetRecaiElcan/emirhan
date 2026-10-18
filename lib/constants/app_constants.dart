@@ -54,4 +54,5 @@ class AppConstants {
 
   static const String appName = 'Ambar Stok';
   static const String organizationName = 'İkmal Kısım Amirliği';
+  static const String logoAsset = 'assets/logo.png';
 }

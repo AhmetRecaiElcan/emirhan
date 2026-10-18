@@ -137,9 +137,17 @@ class ProfileScreen extends StatelessWidget {
                   context: context,
                   applicationName: AppConstants.appName,
                   applicationVersion: '1.0.0',
+                  applicationIcon: ClipOval(
+                    child: Image.asset(
+                      AppConstants.logoAsset,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                   children: [
                     const Text('Depo stok yönetim uygulaması.\n'
-                        'Ürünlerinizi kolayca takip edin.'),
+                        'İkmal Kısım Amirliği'),
                   ],
                 );
               },

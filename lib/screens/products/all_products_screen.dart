@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../services/firestore_service.dart';
 import '../../services/auth_service.dart';
@@ -551,13 +552,28 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
+                      color: AppTheme.cardColor,
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.grid_view_rounded,
-                      color: Colors.white,
-                      size: 22,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          AppConstants.logoAsset,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),

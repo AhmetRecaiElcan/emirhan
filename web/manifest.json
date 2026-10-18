@@ -1,11 +1,11 @@
 {
-    "name": "emirhan",
-    "short_name": "emirhan",
+    "name": "Ambar Stok - İkmal Kısım Amirliği",
+    "short_name": "Ambar Stok",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0B0F19",
+    "theme_color": "#6C5CE7",
+    "description": "Ambar Stok Yönetim Sistemi - İkmal Kısım Amirliği",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

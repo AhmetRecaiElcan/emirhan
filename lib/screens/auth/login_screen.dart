@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/custom_text_field.dart';
@@ -115,23 +116,31 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       // Logo
                       Container(
-                        width: 90,
-                        height: 90,
+                        width: 100,
+                        height: 100,
                         decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(24),
+                          color: AppTheme.cardColor,
+                          shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: AppTheme.primaryColor.withValues(alpha: 0.4),
                               blurRadius: 30,
-                              spreadRadius: 5,
+                              spreadRadius: 4,
                             ),
                           ],
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.inventory_2_rounded,
-                          color: Colors.white,
-                          size: 45,
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Image.asset(
+                              AppConstants.logoAsset,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 28),

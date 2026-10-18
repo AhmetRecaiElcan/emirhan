@@ -33,7 +33,36 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
 
               return Column(
                 children: [
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 36),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                          blurRadius: 25,
+                          spreadRadius: 3,
+                        ),
+                      ],
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          AppConstants.logoAsset,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     AppConstants.appName,
                     style: const TextStyle(
