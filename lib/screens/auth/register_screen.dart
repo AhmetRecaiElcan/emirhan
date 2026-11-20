@@ -82,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
 
     // PIN'i Firebase password olarak kullan (prefix ile güvenlik)
-    final password = 'depo_pin_${_pinValue}_secure';
+    final password = AuthService.pinToPassword(_pinValue);
 
     final result = await authService.signUp(
       email: _emailController.text.trim(),

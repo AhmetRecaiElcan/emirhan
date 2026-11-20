@@ -1,8 +1,10 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../models/product_model.dart';
@@ -39,6 +41,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _selectedLetter = AppConstants.depotLetters[0];
   bool _useSpecialDepot = false;
   bool _isLoading = false;
+  List<String> _selectedStatusTags = [];
 
   bool get _isEditing => widget.product != null;
 
@@ -57,8 +60,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
           : product.quantity.toString();
       _minQuantityController.text =
           product.minQuantity == product.minQuantity.toInt()
-              ? product.minQuantity.toInt().toString()
-              : product.minQuantity.toString();
+          ? product.minQuantity.toInt().toString()
+          : product.minQuantity.toString();
       _selectedUnit = AppConstants.unitTypes.contains(product.unit)
           ? product.unit
           : AppConstants.unitTypes[0];
@@ -69,6 +72,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (AppConstants.purchaseTypes.contains(product.purchaseType)) {
         _selectedPurchaseType = product.purchaseType;
       }
+      _selectedStatusTags = List<String>.from(product.statusTags);
     }
   }
 
@@ -230,7 +234,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       String imageUrl = widget.product?.imageUrl ?? '';
       if (_imageBytes != null) {
-        imageUrl = await _storageService.uploadProductImage(_imageBytes!, productId);
+        imageUrl = await _storageService.uploadProductImage(
+          _imageBytes!,
+          productId,
+        );
       }
 
       final product = ProductModel(
@@ -241,10 +248,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         depot: _selectedDepot,
         imageUrl: imageUrl,
         createdBy: widget.product?.createdBy ?? user.uid,
-        createdByName: widget.product?.createdByName ?? user.displayName ?? 'Bilinmeyen',
+        createdByName:
+            widget.product?.createdByName ?? user.displayName ?? 'Bilinmeyen',
         createdAt: widget.product?.createdAt ?? DateTime.now(),
         minQuantity: minQuantity,
         purchaseType: _selectedPurchaseType,
+        statusTags: _selectedStatusTags,
       );
 
       if (_isEditing) {
@@ -307,9 +316,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
         child: SafeArea(
           child: Column(
             children: [
@@ -323,7 +330,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: AppTheme.glassDecoration(
-                            opacity: 0.1, borderRadius: 12),
+                          opacity: 0.1,
+                          borderRadius: 12,
+                        ),
                         child: const Icon(
                           Icons.arrow_back_ios_new_rounded,
                           color: AppTheme.textPrimary,
@@ -360,245 +369,273 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        // Fotoğraf alanı
-                        GestureDetector(
-                          onTap: _showImagePicker,
-                          child: Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppTheme.cardBorderColor,
-                                width: 2,
-                              ),
-                              image: _imageBytes != null
-                                  ? DecorationImage(
-                                      image: MemoryImage(_imageBytes!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : (_isEditing &&
-                                          (widget.product?.imageUrl.isNotEmpty ??
-                                              false))
+                            // Fotoğraf alanı
+                            GestureDetector(
+                              onTap: _showImagePicker,
+                              child: Container(
+                                width: double.infinity,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppTheme.cardBorderColor,
+                                    width: 2,
+                                  ),
+                                  image: _imageBytes != null
+                                      ? DecorationImage(
+                                          image: MemoryImage(_imageBytes!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : (_isEditing &&
+                                            (widget
+                                                    .product
+                                                    ?.imageUrl
+                                                    .isNotEmpty ??
+                                                false))
                                       ? DecorationImage(
                                           image: NetworkImage(
-                                              widget.product!.imageUrl),
+                                            widget.product!.imageUrl,
+                                          ),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
-                            ),
-                            child: (_imageBytes == null &&
-                                    !(_isEditing &&
-                                        (widget.product?.imageUrl.isNotEmpty ??
-                                            false)))
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor
-                                              .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        child: const Icon(
-                                          Icons.add_a_photo_rounded,
-                                          color: AppTheme.primaryColor,
-                                          size: 28,
+                                ),
+                                child:
+                                    (_imageBytes == null &&
+                                        !(_isEditing &&
+                                            (widget
+                                                    .product
+                                                    ?.imageUrl
+                                                    .isNotEmpty ??
+                                                false)))
+                                    ? Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryColor
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_a_photo_rounded,
+                                              color: AppTheme.primaryColor,
+                                              size: 28,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          const Text(
+                                            'Fotoğraf Ekle',
+                                            style: TextStyle(
+                                              color: AppTheme.primaryColor,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          const Text(
+                                            'Kamera veya galeriden seçin',
+                                            style: TextStyle(
+                                              color: AppTheme.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Align(
+                                        alignment: Alignment.topRight,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.5,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.edit_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      const Text(
-                                        'Fotoğraf Ekle',
-                                        style: TextStyle(
-                                          color: AppTheme.primaryColor,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Kamera veya galeriden seçin',
-                                        style: TextStyle(
-                                          color: AppTheme.textSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Align(
-                                    alignment: Alignment.topRight,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.5),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.edit_rounded,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Ürün adı
-                        CustomTextField(
-                          controller: _nameController,
-                          label: 'Ürün Adı',
-                          hint: 'Ürün adını girin',
-                          prefixIcon: Icons.label_outline,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Ürün adı gerekli';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 18),
-                        // Miktar ve birim
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: CustomTextField(
-                                controller: _quantityController,
-                                label: 'Miktar',
-                                hint: '0',
-                                prefixIcon: Icons.numbers,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Miktar gerekli';
-                                  }
-                                  if (double.tryParse(value) == null) {
-                                    return 'Geçerli sayı girin';
-                                  }
-                                  if (double.parse(value) <= 0) {
-                                    return '0\'dan büyük olmalı';
-                                  }
-                                  return null;
-                                },
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              flex: 1,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.surfaceColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: AppTheme.cardBorderColor),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _selectedUnit,
-                                    dropdownColor: AppTheme.cardColor,
-                                    icon: const Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        color: AppTheme.primaryColor),
-                                    style: const TextStyle(
-                                      color: AppTheme.textPrimary,
-                                      fontSize: 15,
-                                    ),
-                                    items: AppConstants.unitTypes
-                                        .map((unit) => DropdownMenuItem(
-                                              value: unit,
-                                              child: Text(unit),
-                                            ))
-                                        .toList(),
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(
-                                            () => _selectedUnit = value);
+                            const SizedBox(height: 24),
+                            // Ürün adı
+                            CustomTextField(
+                              controller: _nameController,
+                              label: 'Ürün Adı',
+                              hint: 'Ürün adını girin',
+                              prefixIcon: Icons.label_outline,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Ürün adı gerekli';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            // Miktar ve birim
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: CustomTextField(
+                                    controller: _quantityController,
+                                    label: 'Miktar',
+                                    hint: '0',
+                                    prefixIcon: Icons.numbers,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Miktar gerekli';
                                       }
+                                      if (double.tryParse(value) == null) {
+                                        return 'Geçerli sayı girin';
+                                      }
+                                      if (double.parse(value) <= 0) {
+                                        return '0\'dan büyük olmalı';
+                                      }
+                                      return null;
                                     },
                                   ),
                                 ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  flex: 1,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.surfaceColor,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppTheme.cardBorderColor,
+                                      ),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _selectedUnit,
+                                        dropdownColor: AppTheme.cardColor,
+                                        icon: const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                        style: const TextStyle(
+                                          color: AppTheme.textPrimary,
+                                          fontSize: 15,
+                                        ),
+                                        items: AppConstants.unitTypes
+                                            .map(
+                                              (unit) => DropdownMenuItem(
+                                                value: unit,
+                                                child: Text(unit),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(
+                                              () => _selectedUnit = value,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            CustomTextField(
+                              controller: _minQuantityController,
+                              label: 'Alt Limit',
+                              hint: 'Kritik stok miktarı',
+                              prefixIcon: Icons.warning_amber_rounded,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Alt limit gerekli';
+                                }
+                                if (double.tryParse(value) == null) {
+                                  return 'Geçerli sayı girin';
+                                }
+                                if (double.parse(value) < 0) {
+                                  return '0 veya daha büyük olmalı';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            // Depo lokasyonu: rakam + harf (veya özel Z1)
+                            const Text(
+                              'Depo Lokasyonu',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        CustomTextField(
-                          controller: _minQuantityController,
-                          label: 'Alt Limit',
-                          hint: 'Kritik stok miktarı',
-                          prefixIcon: Icons.warning_amber_rounded,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Alt limit gerekli';
-                            }
-                            if (double.tryParse(value) == null) {
-                              return 'Geçerli sayı girin';
-                            }
-                            if (double.parse(value) < 0) {
-                              return '0 veya daha büyük olmalı';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 18),
-                        // Depo lokasyonu: rakam + harf (veya özel Z1)
-                        const Text(
-                          'Depo Lokasyonu',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.cardBorderColor),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.warehouse_outlined,
-                                  color: AppTheme.primaryColor, size: 20),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Seçilen: $_selectedDepot',
-                                style: const TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppTheme.cardBorderColor,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'Rakam (1-10)',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warehouse_outlined,
+                                    color: AppTheme.primaryColor,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Seçilen: $_selectedDepot',
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            const Text(
+                              'Rakam (1-10)',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -679,6 +716,122 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           value: AppConstants.purchaseTypes[1],
                           icon: Icons.account_balance_rounded,
                         ),
+                        const SizedBox(height: 24),
+                        // Durum (Opsiyonel)
+                        Row(
+                          children: [
+                            const Text(
+                              'Durum',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Opsiyonel',
+                                style: TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: AppConstants.statusTypes.map((status) {
+                            final isSelected =
+                                _selectedStatusTags.contains(status);
+                            final color = status == 'Arızalı'
+                                ? const Color(0xFFE17055)
+                                : status == 'Hurda'
+                                    ? const Color(0xFFD63031)
+                                    : const Color(0xFFFDAB3D);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedStatusTags.remove(status);
+                                  } else {
+                                    _selectedStatusTags.add(status);
+                                  }
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  gradient: isSelected
+                                      ? LinearGradient(colors: [
+                                          color,
+                                          color.withValues(alpha: 0.8)
+                                        ])
+                                      : null,
+                                  color: isSelected ? null : AppTheme.surfaceColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.transparent
+                                        : AppTheme.cardBorderColor,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isSelected
+                                          ? Icons.check_circle_rounded
+                                          : (status == 'Arızalı'
+                                              ? Icons.build_circle_outlined
+                                              : status == 'Hurda'
+                                                  ? Icons.delete_outline_rounded
+                                                  : Icons.remove_shopping_cart_outlined),
+                                      size: 17,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppTheme.textSecondary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      status,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppTheme.textSecondary,
+                                        fontSize: 13.5,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                         const SizedBox(height: 32),
                         // Kaydet butonu
                         SizedBox(
@@ -693,40 +846,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ),
                             ),
                             child: _isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.save_rounded, size: 22),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        _isEditing
-                                            ? 'Değişiklikleri Kaydet'
-                                            : 'Ürünü Kaydet',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.white,
                                         ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.save_rounded,
+                                            size: 22,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            _isEditing
+                                                ? 'Değişiklikleri Kaydet'
+                                                : 'Ürünü Kaydet',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                          ),
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                          ],
                         ),
-                        const SizedBox(height: 30),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
             ],
           ),
         ),

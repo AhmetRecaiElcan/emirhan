@@ -12,6 +12,7 @@ class ProductModel {
   final DateTime createdAt;
   final double minQuantity;
   final String purchaseType;
+  final List<String> statusTags;
 
   ProductModel({
     required this.id,
@@ -25,6 +26,7 @@ class ProductModel {
     required this.createdAt,
     this.minQuantity = 0,
     this.purchaseType = 'İşletme Geliriyle Alınanlar',
+    this.statusTags = const [],
   });
 
   bool get isLowStock => quantity <= minQuantity;
@@ -42,6 +44,11 @@ class ProductModel {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       minQuantity: (map['minQuantity'] ?? 0).toDouble(),
       purchaseType: map['purchaseType'] ?? 'İşletme Geliriyle Alınanlar',
+      statusTags: (map['statusTags'] is List)
+          ? List<String>.from(map['statusTags'])
+          : (map['status'] != null && (map['status'] as String).isNotEmpty
+              ? [map['status'] as String]
+              : const <String>[]),
     );
   }
 
@@ -56,6 +63,7 @@ class ProductModel {
       'createdByName': createdByName,
       'minQuantity': minQuantity,
       'purchaseType': purchaseType,
+      'statusTags': statusTags,
       if (!isUpdate) 'createdAt': FieldValue.serverTimestamp(),
     };
   }
@@ -72,6 +80,7 @@ class ProductModel {
     DateTime? createdAt,
     double? minQuantity,
     String? purchaseType,
+    List<String>? statusTags,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -85,6 +94,7 @@ class ProductModel {
       createdAt: createdAt ?? this.createdAt,
       minQuantity: minQuantity ?? this.minQuantity,
       purchaseType: purchaseType ?? this.purchaseType,
+      statusTags: statusTags ?? this.statusTags,
     );
   }
 }

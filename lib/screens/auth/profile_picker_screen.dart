@@ -130,71 +130,228 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
 
   Future<void> _confirmDeleteProfile(UserModel profile) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final confirmed = await showDialog<bool>(
+    final pinControllers = List.generate(4, (_) => TextEditingController());
+    final pinFocusNodes = List.generate(4, (_) => FocusNode());
+    var loading = false;
+    String? error;
+
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 26),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Profili Sil',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> deleteProfile({required bool withPin}) async {
+            var pin = '';
+            if (withPin) {
+              pin = pinControllers.map((c) => c.text).join();
+              if (pin.length != 4) {
+                setDialogState(() => error = '4 haneli PIN girin');
+                return;
+              }
+            }
+            setDialogState(() {
+              loading = true;
+              error = null;
+            });
+
+            final result = await authService.deleteProfileByUid(
+              profile.uid,
+              email: profile.email,
+              pin: withPin ? pin : null,
+            );
+            if (!ctx.mounted) return;
+
+            if (result != null) {
+              setDialogState(() {
+                loading = false;
+                error = result;
+              });
+              for (final c in pinControllers) {
+                c.clear();
+              }
+              pinFocusNodes[0].requestFocus();
+              return;
+            }
+
+            Navigator.pop(ctx);
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  withPin
+                      ? '${profile.displayName} profili ve hesabı silindi'
+                      : '${profile.displayName} kaydı silindi (e-posta rezerve kaldı)',
+                ),
+                backgroundColor: AppTheme.cardColor,
+              ),
+            );
+          }
+
+          return AlertDialog(
+            backgroundColor: AppTheme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    color: AppTheme.errorColor, size: 26),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Profili Sil',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${profile.displayName} kullanıcısı hem uygulamadan hem Firebase hesabından silinecek; '
+                  'böylece aynı e-posta ile ileride yeniden kayıt olunabilir.\n\n'
+                  '✓ Eklenen ürünler silinmez, ambarda kalmaya devam eder.\n'
+                  '✓ Yapılan işlem geçmişi aynen korunur.\n\n'
+                  'Hesabı silmek için profilin PIN kodunu girin:',
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildPinFields(
+                  controllers: pinControllers,
+                  focusNodes: pinFocusNodes,
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    error!,
+                    style: const TextStyle(
+                      color: AppTheme.errorColor,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.pop(ctx),
+                child: const Text(
+                  'İptal',
+                  style: TextStyle(color: AppTheme.textSecondary),
                 ),
               ),
-            ),
-          ],
-        ),
-        content: Text(
-          '${profile.displayName} kullanıcı hesabı silinecektir.\n\n✓ Eklenen ürünler silinmez, ambarda kalmaya devam eder.\n✓ Yapılan işlem geçmişi aynen korunur.\n\nEmin misiniz?',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('İptal', style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Evet, Sil'),
-          ),
-        ],
+              Tooltip(
+                message: 'Profil listeden kalkar ama e-posta Firebase\'de rezerve kalır',
+                child: TextButton(
+                  onPressed: loading ? null : () => deleteProfile(withPin: false),
+                  child: const Text(
+                    'PIN olmadan sil',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.errorColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: loading ? null : () => deleteProfile(withPin: true),
+                child: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Evet, Sil'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    if (confirmed == true) {
-      try {
-        await authService.deleteProfileByUid(profile.uid);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profil başarıyla silindi'),
-              backgroundColor: AppTheme.cardColor,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Hata: $e'),
-              backgroundColor: AppTheme.cardColor,
-            ),
-          );
-        }
-      }
+    for (final c in pinControllers) {
+      c.dispose();
     }
+    for (final n in pinFocusNodes) {
+      n.dispose();
+    }
+  }
+
+  /// 4 haneli PIN kutuları (giriş ve profil silme diyaloglarında ortak).
+  Widget _buildPinFields({
+    required List<TextEditingController> controllers,
+    required List<FocusNode> focusNodes,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (index) {
+        return Container(
+          width: 50,
+          height: 58,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: TextField(
+            controller: controllers[index],
+            focusNode: focusNodes[index],
+            obscureText: true,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(1),
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              filled: true,
+              fillColor: AppTheme.surfaceColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.cardBorderColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.cardBorderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppTheme.primaryColor, width: 2),
+              ),
+            ),
+            onChanged: (value) {
+              if (value.isNotEmpty && index < 3) {
+                focusNodes[index + 1].requestFocus();
+              }
+              if (value.isEmpty && index > 0) {
+                focusNodes[index - 1].requestFocus();
+              }
+            },
+          ),
+        );
+      }),
+    );
   }
 
   Future<void> _askPassword(UserModel profile) async {
@@ -259,60 +416,9 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
                   ),
                   const SizedBox(height: 20),
                   // PIN kutuları
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      return Container(
-                        width: 50,
-                        height: 58,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        child: TextField(
-                          controller: pinControllers[index],
-                          focusNode: pinFocusNodes[index],
-                          obscureText: true,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(1),
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                          decoration: InputDecoration(
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            filled: true,
-                            fillColor: AppTheme.surfaceColor,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: AppTheme.cardBorderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: AppTheme.cardBorderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: AppTheme.primaryColor, width: 2),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value.isNotEmpty && index < 3) {
-                              pinFocusNodes[index + 1].requestFocus();
-                            }
-                            if (value.isEmpty && index > 0) {
-                              pinFocusNodes[index - 1].requestFocus();
-                            }
-                          },
-                        ),
-                      );
-                    }),
+                  _buildPinFields(
+                    controllers: pinControllers,
+                    focusNodes: pinFocusNodes,
                   ),
                   if (error != null) ...[
                     const SizedBox(height: 14),
@@ -348,7 +454,7 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
                           });
 
                           // PIN'i Firebase password'a çevir
-                          final password = 'depo_pin_${pinValue}_secure';
+                          final password = AuthService.pinToPassword(pinValue);
 
                           final authService =
                               Provider.of<AuthService>(this.context,

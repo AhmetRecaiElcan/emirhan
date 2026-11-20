@@ -76,6 +76,39 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (product.statusTags.isNotEmpty)
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Container(
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: (product.statusTags.contains('Arızalı')
+                                      ? const Color(0xFFE17055)
+                                      : product.statusTags.contains('Hurda')
+                                          ? const Color(0xFFD63031)
+                                          : const Color(0xFFFDAB3D))
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                          child: Text(
+                            product.statusTags.first.toUpperCase(),
+                            style: TextStyle(
+                              color: product.statusTags.contains('Arızalı')
+                                  ? const Color(0xFFFF7675)
+                                  : product.statusTags.contains('Hurda')
+                                      ? const Color(0xFFFF7675)
+                                      : const Color(0xFFFDAB3D),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

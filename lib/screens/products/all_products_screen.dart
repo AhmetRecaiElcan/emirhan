@@ -1,8 +1,10 @@
 import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../services/firestore_service.dart';
@@ -25,17 +27,27 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _purchaseTypeScrollController = ScrollController();
   final ScrollController _depotScrollController = ScrollController();
+  final ScrollController _statusScrollController = ScrollController();
   String _searchQuery = '';
   String _selectedDepot = 'Tümü';
   String _selectedPurchaseType = 'Tümü';
+  String _selectedStatus = 'Tümü';
   bool _isPrinting = false;
   List<ProductModel> _currentFilteredProducts = [];
+  late Stream<List<ProductModel>> _productsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsStream = _firestoreService.getProducts();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _purchaseTypeScrollController.dispose();
     _depotScrollController.dispose();
+    _statusScrollController.dispose();
     super.dispose();
   }
 
@@ -59,14 +71,48 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         _normalizeDepot(selectedFilter).toLowerCase();
   }
 
+  static int _compareDepots(String a, String b) {
+    final cleanA = a.trim().toLowerCase();
+    final cleanB = b.trim().toLowerCase();
+    final isZeminA =
+        cleanA.startsWith('zemin') || cleanA.startsWith('z1') || cleanA == 'z';
+    final isZeminB =
+        cleanB.startsWith('zemin') || cleanB.startsWith('z1') || cleanB == 'z';
+    if (isZeminA && !isZeminB) return -1;
+    if (!isZeminA && isZeminB) return 1;
+
+    final numMatchA = RegExp(r'^(\d+)').firstMatch(cleanA);
+    final numMatchB = RegExp(r'^(\d+)').firstMatch(cleanB);
+    if (numMatchA != null && numMatchB != null) {
+      final numA = int.parse(numMatchA.group(1)!);
+      final numB = int.parse(numMatchB.group(1)!);
+      if (numA != numB) return numA.compareTo(numB);
+    }
+    return cleanA.compareTo(cleanB);
+  }
+
   List<String> _depotFilters(List<ProductModel> products) {
     final depots = products
         .map((p) => _normalizeDepot(p.depot))
         .where((d) => d.isNotEmpty)
         .toSet()
-        .toList()
-      ..sort();
+        .toList();
+    depots.sort(_compareDepots);
     return ['Tümü', ...depots];
+  }
+
+  void _scrollToSelectedChip(ScrollController controller, int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!controller.hasClients) return;
+      const itemWidth = 115.0;
+      final viewport = controller.position.viewportDimension;
+      final target = (index * itemWidth) - (viewport / 2) + (itemWidth / 2);
+      controller.animateTo(
+        target.clamp(0.0, controller.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Future<void> _showPdfExportDialog() async {
@@ -77,14 +123,21 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       final all = await _firestoreService.getProducts().first;
       final selectedDepot = _selectedDepot;
       final selectedPurchaseType = _selectedPurchaseType;
+      final selectedStatus = _selectedStatus;
+      final query = AppConstants.normalizeSearch(_searchQuery);
       productsToPrint = all.where((product) {
-        final matchesSearch = product.name
-            .toLowerCase()
-            .contains(_searchQuery.toLowerCase());
+        final matchesSearch = query.isEmpty ||
+            AppConstants.normalizeSearch(product.name).contains(query);
         final matchesDepot = _matchesDepot(product.depot, selectedDepot);
-        final matchesPurchaseType = selectedPurchaseType == 'Tümü' ||
+        final matchesPurchaseType =
+            selectedPurchaseType == 'Tümü' ||
             product.purchaseType == selectedPurchaseType;
-        return matchesSearch && matchesDepot && matchesPurchaseType;
+        final matchesStatus = selectedStatus == 'Tümü' ||
+            product.statusTags.contains(selectedStatus);
+        return matchesSearch &&
+            matchesDepot &&
+            matchesPurchaseType &&
+            matchesStatus;
       }).toList();
     }
 
@@ -202,11 +255,14 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 11),
+                                horizontal: 14,
+                                vertical: 11,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppTheme.primaryColor
-                                        .withValues(alpha: 0.15)
+                                    ? AppTheme.primaryColor.withValues(
+                                        alpha: 0.15,
+                                      )
                                     : AppTheme.surfaceColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
@@ -221,12 +277,15 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                   Icon(
                                     option == PdfSortOption.location
                                         ? Icons.warehouse_rounded
-                                        : option == PdfSortOption.alphabeticalAsc ||
-                                                option == PdfSortOption.alphabeticalDesc
-                                            ? Icons.sort_by_alpha_rounded
-                                            : option == PdfSortOption.quantityDesc
-                                                ? Icons.format_list_numbered_rounded
-                                                : Icons.calendar_month_rounded,
+                                        : option ==
+                                                  PdfSortOption
+                                                      .alphabeticalAsc ||
+                                              option ==
+                                                  PdfSortOption.alphabeticalDesc
+                                        ? Icons.sort_by_alpha_rounded
+                                        : option == PdfSortOption.quantityDesc
+                                        ? Icons.format_list_numbered_rounded
+                                        : Icons.calendar_month_rounded,
                                     color: isSelected
                                         ? AppTheme.primaryColor
                                         : AppTheme.textSecondary,
@@ -307,7 +366,9 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   }
 
   Future<void> _exportPdf(
-      PdfSortOption sortOption, List<ProductModel> productsToPrint) async {
+    PdfSortOption sortOption,
+    List<ProductModel> productsToPrint,
+  ) async {
     if (_isPrinting) return;
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUserName = authService.currentUser?.displayName;
@@ -349,9 +410,13 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         decoration: BoxDecoration(
           gradient: isSelected
               ? (activeColor != null
-                  ? LinearGradient(
-                      colors: [activeColor, activeColor.withValues(alpha: 0.8)])
-                  : AppTheme.primaryGradient)
+                    ? LinearGradient(
+                        colors: [
+                          activeColor,
+                          activeColor.withValues(alpha: 0.8),
+                        ],
+                      )
+                    : AppTheme.primaryGradient)
               : null,
           color: isSelected ? null : AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(10),
@@ -361,8 +426,9 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color:
-                        (activeColor ?? AppTheme.primaryColor).withValues(alpha: 0.3),
+                    color: (activeColor ?? AppTheme.primaryColor).withValues(
+                      alpha: 0.3,
+                    ),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -544,201 +610,218 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           constraints: const BoxConstraints(maxWidth: 1400),
           child: Column(
             children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardColor,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset(
-                          AppConstants.logoAsset,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Ürün Havuzu',
-                          style: TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Image.asset(
+                            AppConstants.logoAsset,
+                            fit: BoxFit.contain,
                           ),
-                        ),
-                        Text(
-                          'Tüm ürünleri görüntüle',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // PDF İndir / Yazdır Butonu
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: _showPdfExportDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF6C5CE7), Color(0xFF00CEC9)],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  AppTheme.primaryColor.withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _isPrinting
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.picture_as_pdf_rounded,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Yazdır / PDF',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              decoration: AppTheme.glassDecoration(opacity: 0.06),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _searchQuery = value),
-                style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Ürün ara...',
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.textSecondary,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close_rounded,
-                              color: AppTheme.textSecondary),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: AppTheme.surfaceColor.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: StreamBuilder<List<ProductModel>>(
-              stream: _firestoreService.getProducts(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingWidget(message: 'Ürünler yükleniyor...');
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
+                    const SizedBox(width: 14),
+                    const Expanded(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.error_outline,
-                              color: AppTheme.errorColor, size: 48),
-                          const SizedBox(height: 12),
                           Text(
-                            'Hata: ${snapshot.error}',
-                            style:
-                                const TextStyle(color: AppTheme.textSecondary),
-                            textAlign: TextAlign.center,
+                            'Ürün Havuzu',
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            'Tüm ürünleri görüntüle',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }
+                    // PDF İndir / Yazdır Butonu
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: _showPdfExportDialog,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6C5CE7), Color(0xFF00CEC9)],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _isPrinting
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.picture_as_pdf_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Yazdır / PDF',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  decoration: AppTheme.glassDecoration(opacity: 0.06),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Ürün ara...',
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppTheme.textSecondary,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: AppTheme.textSecondary,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: AppTheme.surfaceColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: StreamBuilder<List<ProductModel>>(
+                  stream: _productsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const LoadingWidget(
+                        message: 'Ürünler yükleniyor...',
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: AppTheme.errorColor,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Hata: ${snapshot.error}',
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
 
                 final allProducts = snapshot.data ?? [];
                 final depotFilters = _depotFilters(allProducts);
                 final selectedDepot =
                     depotFilters.contains(_selectedDepot) ? _selectedDepot : 'Tümü';
+                final query = AppConstants.normalizeSearch(_searchQuery);
                 final products = allProducts.where((product) {
-                  final matchesSearch = product.name
-                      .toLowerCase()
-                      .contains(_searchQuery.toLowerCase());
+                  final matchesSearch = query.isEmpty ||
+                      AppConstants.normalizeSearch(product.name).contains(query);
                   final matchesDepot = _matchesDepot(product.depot, selectedDepot);
                   final matchesPurchaseType = _selectedPurchaseType == 'Tümü' ||
                       product.purchaseType == _selectedPurchaseType;
-                  return matchesSearch && matchesDepot && matchesPurchaseType;
+                  final matchesStatus = _selectedStatus == 'Tümü' ||
+                      product.statusTags.contains(_selectedStatus);
+                  return matchesSearch &&
+                      matchesDepot &&
+                      matchesPurchaseType &&
+                      matchesStatus;
                 }).toList();
                 _currentFilteredProducts = products;
 
                 final hasActiveFilter = _selectedPurchaseType != 'Tümü' ||
                     selectedDepot != 'Tümü' ||
+                    _selectedStatus != 'Tümü' ||
                     _searchQuery.isNotEmpty;
 
                 return Column(
@@ -752,9 +835,15 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           label: 'Tüm Alımlar',
                           icon: Icons.layers_rounded,
                           isSelected: _selectedPurchaseType == 'Tümü',
-                          onTap: () => setState(() => _selectedPurchaseType = 'Tümü'),
+                          onTap: () {
+                            setState(() => _selectedPurchaseType = 'Tümü');
+                            _scrollToSelectedChip(_purchaseTypeScrollController, 0);
+                          },
                           count: allProducts
-                              .where((p) => _matchesDepot(p.depot, selectedDepot))
+                              .where((p) =>
+                                  _matchesDepot(p.depot, selectedDepot) &&
+                                  (_selectedStatus == 'Tümü' ||
+                                      p.statusTags.contains(_selectedStatus)))
                               .length,
                         ),
                         _buildFilterChip(
@@ -763,12 +852,17 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           isSelected: _selectedPurchaseType ==
                               'İşletme Geliriyle Alınanlar',
                           activeColor: const Color(0xFF6C5CE7),
-                          onTap: () => setState(() =>
-                              _selectedPurchaseType = 'İşletme Geliriyle Alınanlar'),
+                          onTap: () {
+                            setState(() =>
+                                _selectedPurchaseType = 'İşletme Geliriyle Alınanlar');
+                            _scrollToSelectedChip(_purchaseTypeScrollController, 1);
+                          },
                           count: allProducts
                               .where((p) =>
                                   p.purchaseType == 'İşletme Geliriyle Alınanlar' &&
-                                  _matchesDepot(p.depot, selectedDepot))
+                                  _matchesDepot(p.depot, selectedDepot) &&
+                                  (_selectedStatus == 'Tümü' ||
+                                      p.statusTags.contains(_selectedStatus)))
                               .length,
                         ),
                         _buildFilterChip(
@@ -777,12 +871,17 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           isSelected: _selectedPurchaseType ==
                               'Devlet Kredisiyle Alınanlar',
                           activeColor: const Color(0xFF00CEC9),
-                          onTap: () => setState(() =>
-                              _selectedPurchaseType = 'Devlet Kredisiyle Alınanlar'),
+                          onTap: () {
+                            setState(() =>
+                                _selectedPurchaseType = 'Devlet Kredisiyle Alınanlar');
+                            _scrollToSelectedChip(_purchaseTypeScrollController, 2);
+                          },
                           count: allProducts
                               .where((p) =>
                                   p.purchaseType == 'Devlet Kredisiyle Alınanlar' &&
-                                  _matchesDepot(p.depot, selectedDepot))
+                                  _matchesDepot(p.depot, selectedDepot) &&
+                                  (_selectedStatus == 'Tümü' ||
+                                      p.statusTags.contains(_selectedStatus)))
                               .length,
                         ),
                       ],
@@ -794,21 +893,27 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                       _buildHorizontalFilterBar(
                         controller: _depotScrollController,
                         height: 34,
-                        children: depotFilters.map((label) {
+                        children: depotFilters.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final label = entry.value;
                           final isSelected = selectedDepot == label;
                           final displayLabel =
                               label == 'Tümü' ? 'Tüm Lokasyonlar' : label;
                           final count = label == 'Tümü'
                               ? allProducts
                                   .where((p) =>
-                                      _selectedPurchaseType == 'Tümü' ||
-                                      p.purchaseType == _selectedPurchaseType)
+                                      (_selectedPurchaseType == 'Tümü' ||
+                                          p.purchaseType == _selectedPurchaseType) &&
+                                      (_selectedStatus == 'Tümü' ||
+                                          p.statusTags.contains(_selectedStatus)))
                                   .length
                               : allProducts
                                   .where((p) =>
                                       _matchesDepot(p.depot, label) &&
                                       (_selectedPurchaseType == 'Tümü' ||
-                                          p.purchaseType == _selectedPurchaseType))
+                                          p.purchaseType == _selectedPurchaseType) &&
+                                      (_selectedStatus == 'Tümü' ||
+                                          p.statusTags.contains(_selectedStatus)))
                                   .length;
                           return _buildFilterChip(
                             label: displayLabel,
@@ -816,13 +921,73 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                 ? Icons.location_on_outlined
                                 : Icons.warehouse_rounded,
                             isSelected: isSelected,
-                            onTap: () => setState(() => _selectedDepot = label),
+                            onTap: () {
+                              setState(() => _selectedDepot = label);
+                              _scrollToSelectedChip(_depotScrollController, index);
+                            },
                             count: count,
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 8),
                     ],
+
+                    // Durum Filtresi (Opsiyonel Durumlar: Arızalı, Hurda, Çıkma/Bitmiş)
+                    _buildHorizontalFilterBar(
+                      controller: _statusScrollController,
+                      height: 34,
+                      children: [
+                        _buildFilterChip(
+                          label: 'Tüm Durumlar',
+                          icon: Icons.checklist_rounded,
+                          isSelected: _selectedStatus == 'Tümü',
+                          onTap: () {
+                            setState(() => _selectedStatus = 'Tümü');
+                            _scrollToSelectedChip(_statusScrollController, 0);
+                          },
+                          count: allProducts
+                              .where((p) =>
+                                  _matchesDepot(p.depot, selectedDepot) &&
+                                  (_selectedPurchaseType == 'Tümü' ||
+                                      p.purchaseType == _selectedPurchaseType))
+                              .length,
+                        ),
+                        ...AppConstants.statusTypes.asMap().entries.map((entry) {
+                          final index = entry.key + 1;
+                          final status = entry.value;
+                          final isSelected = _selectedStatus == status;
+                          final color = status == 'Arızalı'
+                              ? const Color(0xFFE17055)
+                              : status == 'Hurda'
+                                  ? const Color(0xFFD63031)
+                                  : const Color(0xFFFDAB3D);
+                          final icon = status == 'Arızalı'
+                              ? Icons.build_circle_outlined
+                              : status == 'Hurda'
+                                  ? Icons.delete_outline_rounded
+                                  : Icons.remove_shopping_cart_outlined;
+                          final count = allProducts
+                              .where((p) =>
+                                  p.statusTags.contains(status) &&
+                                  _matchesDepot(p.depot, selectedDepot) &&
+                                  (_selectedPurchaseType == 'Tümü' ||
+                                      p.purchaseType == _selectedPurchaseType))
+                              .length;
+                          return _buildFilterChip(
+                            label: status,
+                            icon: icon,
+                            isSelected: isSelected,
+                            activeColor: color,
+                            onTap: () {
+                              setState(() => _selectedStatus = status);
+                              _scrollToSelectedChip(_statusScrollController, index);
+                            },
+                            count: count,
+                          );
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     const SizedBox(height: 4),
 
                     Expanded(
@@ -856,12 +1021,19 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                           _searchQuery = '';
                                           _selectedDepot = 'Tümü';
                                           _selectedPurchaseType = 'Tümü';
+                                          _selectedStatus = 'Tümü';
                                         });
                                       },
-                                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                                      label: const Text('Filtreleri Temizle'),
+                                      icon: const Icon(
+                                        Icons.refresh_rounded,
+                                        size: 16,
+                                      ),
+                                      label: const Text(
+                                        'Filtreleri Temizle',
+                                      ),
                                       style: TextButton.styleFrom(
-                                        foregroundColor: AppTheme.primaryColor,
+                                        foregroundColor:
+                                            AppTheme.primaryColor,
                                       ),
                                     ),
                                   ],
@@ -869,8 +1041,12 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                               ),
                             )
                           : GridView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                4,
+                                20,
+                                20,
+                              ),
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 220,
@@ -897,20 +1073,15 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                               },
                             ),
                     ),
-                  ],
-                );
-              },
-            ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
-
-
-
-
-

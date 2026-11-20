@@ -8,6 +8,9 @@ class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// PIN'i Firebase şifresine çevirir (kayıt ve girişte ortak kullanılır).
+  static String pinToPassword(String pin) => 'depo_pin_${pin}_secure';
+
   User? get currentUser => _auth.currentUser;
   bool get isLoggedIn => _auth.currentUser != null;
   bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
@@ -69,9 +72,91 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        // E-posta Firebase Auth'ta kayıtlı: profili silinmiş bir hesap ise
+        // aynı PIN ile yeniden oluşturmayı dene.
+        return _recreateDeletedProfile(
+          email: email,
+          password: password,
+          displayName: displayName,
+        );
+      }
       return _getErrorMessage(e.code);
     } catch (e) {
       return 'Beklenmeyen bir hata oluştu: $e';
+    }
+  }
+
+  /// Profili Firestore'dan silinmiş ama Firebase Auth kaydı (e-posta) kalmış
+  /// kullanıcılar için: e-posta + PIN doğruysa hesabı ve profili yeniden kurar.
+  Future<String?> _recreateDeletedProfile({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    try {
+      final result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = result.user;
+      if (user == null) {
+        return _getErrorMessage('email-already-in-use');
+      }
+
+      final docRef = _firestore.collection('users').doc(user.uid);
+      final doc = await docRef.get();
+
+      if (doc.exists) {
+        // Profil hâlâ kayıtlı: e-postayı gerçekten başka bir profil kullanıyor,
+        // açılan oturumu geri kapat.
+        await _auth.signOut();
+        return _getErrorMessage('email-already-in-use');
+      }
+
+      // Profil kaydı silinmiş -> aynı hesapla (aynı uid ile) yeniden oluştur
+      await user.updateDisplayName(displayName);
+      await docRef.set(
+        UserModel(
+          uid: user.uid,
+          email: email,
+          displayName: displayName,
+          createdAt: DateTime.now(),
+        ).toMap(),
+      );
+      if (!user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        if (!await _hasProfileWithEmail(email)) {
+          return 'Bu e-posta silinmiş bir profile ait. '
+              'Kayıt olurken daha önce kullandığınız PIN kodunu girin.';
+        }
+        return _getErrorMessage('email-already-in-use');
+      }
+      return _getErrorMessage(e.code);
+    } catch (e) {
+      return 'Beklenmeyen bir hata oluştu: $e';
+    }
+  }
+
+  /// Verilen e-posta ile kayıtlı bir profil belgesi var mı?
+  Future<bool> _hasProfileWithEmail(String email) async {
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      debugPrint('❌ E-posta sorgusu hatası: $e');
+      // Emin değilsek e-postayı kullanımda say
+      return true;
     }
   }
 
@@ -138,20 +223,44 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Belirli bir UID'ye ait profili Firestore'dan sil
-  Future<void> deleteProfileByUid(String uid) async {
-    // 1. Firestore'dan kullanıcı belgesini sil
-    await _firestore.collection('users').doc(uid).delete();
-
-    // 2. Eğer o kullanıcı oturum açmışsa oturumu kapat veya auth'tan sil
-    if (_auth.currentUser?.uid == uid) {
+  /// Profili hem Firestore'dan hem de Firebase Authentication'dan siler.
+  ///
+  /// E-postanın ileride yeniden kullanılabilmesi için Auth hesabının da
+  /// silinmesi şarttır; bunun için o profilin PIN'i ile giriş yapılır.
+  /// [pin] null verilirse sadece Firestore kaydı silinir ve e-posta
+  /// Firebase'de rezerve kalır (önerilmez).
+  ///
+  /// Başarılıysa null, hata durumunda gösterilecek mesaj döner ve
+  /// hiçbir kayıt silinmemiş olur.
+  Future<String?> deleteProfileByUid(
+    String uid, {
+    required String email,
+    String? pin,
+  }) async {
+    if (pin != null) {
       try {
-        await _auth.currentUser?.delete();
-      } catch (e) {
-        await _auth.signOut();
+        // 1. Silinecek profilin Auth hesabına giriş yap
+        final credential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: pinToPassword(pin),
+        );
+        // 2. Auth hesabını sil -> e-posta serbest kalır
+        await credential.user?.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          return 'PIN hatalı. Profil silinmedi.';
+        }
+        // Auth hesabı zaten yoksa devam edip sadece kaydı temizleriz
+        if (e.code != 'user-not-found') {
+          return _getErrorMessage(e.code);
+        }
       }
     }
+
+    // 3. Firestore kaydını sil
+    await _firestore.collection('users').doc(uid).delete();
     notifyListeners();
+    return null;
   }
 
   Future<String?> sendVerificationEmail() async {

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+
 import '../constants/app_constants.dart';
 import '../models/product_model.dart';
 
@@ -34,12 +35,14 @@ class PdfService {
         });
         break;
       case PdfSortOption.alphabeticalAsc:
-        list.sort((a, b) =>
-            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        list.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
         break;
       case PdfSortOption.alphabeticalDesc:
-        list.sort((a, b) =>
-            b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        list.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
         break;
       case PdfSortOption.dateNewest:
         list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -130,10 +133,7 @@ class PdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(32),
-        theme: pw.ThemeData.withFont(
-          base: fontRegular,
-          bold: fontBold,
-        ),
+        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -259,18 +259,13 @@ class PdfService {
         ),
         build: (context) => [
           pw.TableHelper.fromTextArray(
-            border: pw.TableBorder.all(
-              color: PdfColors.grey300,
-              width: 0.5,
-            ),
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
             headerStyle: pw.TextStyle(
               font: fontBold,
               fontSize: 10,
               color: PdfColors.white,
             ),
-            headerDecoration: pw.BoxDecoration(
-              color: primaryColor,
-            ),
+            headerDecoration: pw.BoxDecoration(color: primaryColor),
             headerHeight: 28,
             cellHeight: 24,
             columnWidths: const {
@@ -298,9 +293,7 @@ class PdfService {
               fontSize: 8.5,
               color: textColor,
             ),
-            rowDecoration: const pw.BoxDecoration(
-              color: PdfColors.white,
-            ),
+            rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
             headers: [
               '#',
               'Ürün Adı',
@@ -316,8 +309,8 @@ class PdfService {
               final isLow = p.isLowStock;
               final qtyText =
                   '${p.quantity == p.quantity.toInt() ? p.quantity.toInt() : p.quantity} ${p.unit}';
-              final dateText =
-                  DateFormat('dd.MM.yyyy HH:mm').format(p.createdAt);
+              final dateText = DateFormat('dd.MM.yyyy HH:mm')
+                  .format(p.createdAt);
 
               return [
                 (index + 1).toString(),
@@ -327,7 +320,9 @@ class PdfService {
                 p.purchaseType.isNotEmpty ? p.purchaseType : '-',
                 p.createdByName.isNotEmpty ? p.createdByName : 'Bilinmeyen',
                 dateText,
-                isLow ? 'Kritik Stok' : 'Normal',
+                p.statusTags.isNotEmpty
+                    ? '${p.statusTags.join(", ")}${isLow ? " (Kritik)" : ""}'
+                    : (isLow ? 'Kritik Stok' : 'Normal'),
               ];
             }),
           ),

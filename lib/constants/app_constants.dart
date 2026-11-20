@@ -20,9 +20,16 @@ class AppConstants {
   static ({int number, String letter, bool special}) parseDepot(String depot) {
     final clean = depot.trim().toLowerCase();
     if (clean == 'zemin 1' || clean == 'zemin1' || clean == 'z1') {
-      return (number: depotNumbers.first, letter: depotLetters.first, special: true);
+      return (
+        number: depotNumbers.first,
+        letter: depotLetters.first,
+        special: true,
+      );
     }
-    final match = RegExp(r'^(\d+)([A-H])$', caseSensitive: false).firstMatch(depot.trim());
+    final match = RegExp(
+      r'^(\d+)([A-H])$',
+      caseSensitive: false,
+    ).firstMatch(depot.trim());
     if (match != null) {
       return (
         number: int.parse(match.group(1)!),
@@ -30,7 +37,11 @@ class AppConstants {
         special: false,
       );
     }
-    return (number: depotNumbers.first, letter: depotLetters.first, special: false);
+    return (
+      number: depotNumbers.first,
+      letter: depotLetters.first,
+      special: false,
+    );
   }
 
   static List<String> get allDepotLocations {
@@ -41,16 +52,40 @@ class AppConstants {
     ];
   }
 
-  static const List<String> unitTypes = [
-    'Adet',
-    'kg',
-    'Lt',
-  ];
+  static const List<String> unitTypes = ['Adet', 'kg', 'Lt'];
 
   static const List<String> purchaseTypes = [
     'İşletme Geliriyle Alınanlar',
     'Devlet Kredisiyle Alınanlar',
   ];
+
+  static const List<String> statusTypes = [
+    'Arızalı',
+    'Hurda',
+    'Çıkma/Bitmiş',
+  ];
+
+  /// Arama terimlerini ve metinleri büyük/küçük harf, Caps Lock ve
+  /// Türkçe karakter duyarlılığından arındırarak karşılaştırılabilir hale getirir.
+  static String normalizeSearch(String text) {
+    if (text.isEmpty) return '';
+    return text
+        .trim()
+        .replaceAll('İ', 'i')
+        .replaceAll('I', 'ı')
+        .replaceAll('ı', 'i')
+        .replaceAll('ş', 's')
+        .replaceAll('Ş', 's')
+        .replaceAll('ğ', 'g')
+        .replaceAll('Ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('Ü', 'u')
+        .replaceAll('ö', 'o')
+        .replaceAll('Ö', 'o')
+        .replaceAll('ç', 'c')
+        .replaceAll('Ç', 'c')
+        .toLowerCase();
+  }
 
   static const String appName = 'Ambar Stok';
   static const String organizationName = 'İkmal Kısım Amirliği';

@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/app_theme.dart';
 import '../../models/product_model.dart';
 import '../../models/transaction_model.dart';
@@ -141,8 +143,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentProduct =
-        _products.isNotEmpty ? _products[_currentIndex] : widget.product;
+    final currentProduct = _products.isNotEmpty
+        ? _products[_currentIndex]
+        : widget.product;
     final authService = Provider.of<AuthService>(context);
     final isOwner = authService.currentUser?.uid == currentProduct.createdBy;
 
@@ -169,7 +172,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: AppTheme.glassDecoration(
-                                opacity: 0.1, borderRadius: 12),
+                              opacity: 0.1,
+                              borderRadius: 12,
+                            ),
                             child: const Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: AppTheme.textPrimary,
@@ -194,12 +199,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               const SizedBox(width: 10),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                                  color: AppTheme.primaryColor.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                    color: AppTheme.primaryColor.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Text(
@@ -224,7 +235,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               Icons.chevron_left_rounded,
                               color: _currentIndex > 0
                                   ? AppTheme.textPrimary
-                                  : AppTheme.textSecondary.withValues(alpha: 0.3),
+                                  : AppTheme.textSecondary.withValues(
+                                      alpha: 0.3,
+                                    ),
                               size: 28,
                             ),
                           ),
@@ -239,7 +252,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               Icons.chevron_right_rounded,
                               color: _currentIndex < _products.length - 1
                                   ? AppTheme.textPrimary
-                                  : AppTheme.textSecondary.withValues(alpha: 0.3),
+                                  : AppTheme.textSecondary.withValues(
+                                      alpha: 0.3,
+                                    ),
                               size: 28,
                             ),
                           ),
@@ -258,7 +273,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: AppTheme.glassDecoration(
-                                opacity: 0.1, borderRadius: 12),
+                              opacity: 0.1,
+                              borderRadius: 12,
+                            ),
                             child: const Icon(
                               Icons.edit_rounded,
                               color: AppTheme.textPrimary,
@@ -269,14 +286,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       if (isOwner)
                         IconButton(
                           onPressed: () => _showDeleteDialog(
-                              context, _firestoreService, currentProduct),
+                            context,
+                            _firestoreService,
+                            currentProduct,
+                          ),
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: AppTheme.errorColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppTheme.errorColor.withValues(alpha: 0.3),
+                                color: AppTheme.errorColor.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                             ),
                             child: const Icon(
@@ -309,7 +331,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             product: _products[index],
                             firestoreService: _firestoreService,
                             onDelete: (prod) => _showDeleteDialog(
-                                context, _firestoreService, prod),
+                              context,
+                              _firestoreService,
+                              prod,
+                            ),
                           );
                         },
                       ),
@@ -331,15 +356,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.surfaceColor
-                                          .withValues(alpha: 0.85),
+                                      color: AppTheme.surfaceColor.withValues(
+                                        alpha: 0.85,
+                                      ),
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: AppTheme.cardBorderColor,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.2),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -374,15 +402,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.surfaceColor
-                                          .withValues(alpha: 0.85),
+                                      color: AppTheme.surfaceColor.withValues(
+                                        alpha: 0.85,
+                                      ),
                                       shape: BoxShape.circle,
                                       border: Border.all(
                                         color: AppTheme.cardBorderColor,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.2),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -410,8 +441,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context,
-      FirestoreService firestoreService, ProductModel productToDelete) {
+  void _showDeleteDialog(
+    BuildContext context,
+    FirestoreService firestoreService,
+    ProductModel productToDelete,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -486,7 +520,8 @@ class _ProductDetailContent extends StatelessWidget {
       stream: firestoreService.getProductStream(product.id),
       builder: (context, productSnapshot) {
         final currentProduct = productSnapshot.data ?? product;
-        final isOwner = authService.currentUser?.uid == currentProduct.createdBy;
+        final isOwner =
+            authService.currentUser?.uid == currentProduct.createdBy;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -497,15 +532,70 @@ class _ProductDetailContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ürün fotoğrafı
+                  // Ürün fotoğrafı (tıklayınca tam ekran yakınlaştırma)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: AspectRatio(
                       aspectRatio: 1.4,
-                      child: AppNetworkImage(
-                        imageUrl: currentProduct.imageUrl,
-                        fit: BoxFit.cover,
-                        iconSize: 60,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          GestureDetector(
+                            onTap: currentProduct.imageUrl.isEmpty
+                                ? null
+                                : () => _openZoomableImage(
+                                    context,
+                                    currentProduct.imageUrl,
+                                    currentProduct.name,
+                                  ),
+                            child: AppNetworkImage(
+                              imageUrl: currentProduct.imageUrl,
+                              fit: BoxFit.cover,
+                              iconSize: 60,
+                            ),
+                          ),
+                          if (currentProduct.imageUrl.isNotEmpty)
+                            Positioned(
+                              right: 10,
+                              bottom: 10,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.45),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.zoom_in_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Büyüt',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -564,32 +654,32 @@ class _ProductDetailContent extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: AppTheme.cardBorderColor),
+                      border: Border.all(color: AppTheme.cardBorderColor),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: (currentProduct.purchaseType
-                                        .contains('Devlet')
-                                    ? AppTheme.accentColor
-                                    : AppTheme.primaryColor)
-                                .withValues(alpha: 0.15),
+                            color:
+                                (currentProduct.purchaseType.contains('Devlet')
+                                        ? AppTheme.accentColor
+                                        : AppTheme.primaryColor)
+                                    .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
-                            currentProduct.purchaseType
-                                    .contains('Devlet')
+                            currentProduct.purchaseType.contains('Devlet')
                                 ? Icons.account_balance_rounded
                                 : Icons.storefront_rounded,
-                            color: currentProduct.purchaseType
-                                    .contains('Devlet')
+                            color:
+                                currentProduct.purchaseType.contains('Devlet')
                                 ? AppTheme.accentColor
                                 : AppTheme.primaryColor,
                             size: 20,
@@ -620,6 +710,79 @@ class _ProductDetailContent extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (currentProduct.statusTags.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.cardBorderColor),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE17055).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.flag_rounded,
+                              color: Color(0xFFE17055),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Ürün Durumu',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: currentProduct.statusTags.map((tag) {
+                                    final color = tag == 'Arızalı'
+                                        ? const Color(0xFFE17055)
+                                        : tag == 'Hurda'
+                                            ? const Color(0xFFD63031)
+                                            : const Color(0xFFFDAB3D);
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: color.withValues(alpha: 0.35),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        tag,
+                                        style: TextStyle(
+                                          color: color,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   // Stok azaltma butonu (sadece ürün sahibi)
                   if (isOwner) ...[
@@ -629,20 +792,20 @@ class _ProductDetailContent extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: currentProduct.quantity > 0
                             ? () async {
-                                final deleted =
-                                    await Navigator.of(context).push<bool>(
-                                  MaterialPageRoute(
-                                    builder: (_) => ReduceStockScreen(
-                                        product: currentProduct),
-                                  ),
-                                );
+                                final deleted = await Navigator.of(context)
+                                    .push<bool>(
+                                      MaterialPageRoute(
+                                        builder: (_) => ReduceStockScreen(
+                                          product: currentProduct,
+                                        ),
+                                      ),
+                                    );
                                 if (deleted == true && context.mounted) {
                                   onDelete(currentProduct);
                                 }
                               }
                             : null,
-                        icon: const Icon(
-                            Icons.remove_circle_outline_rounded),
+                        icon: const Icon(Icons.remove_circle_outline_rounded),
                         label: const Text(
                           'Stok Azalt / Ürün Ver',
                           style: TextStyle(
@@ -667,8 +830,8 @@ class _ProductDetailContent extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => AddProductScreen(
-                                  product: currentProduct),
+                              builder: (_) =>
+                                  AddProductScreen(product: currentProduct),
                             ),
                           );
                         },
@@ -682,8 +845,7 @@ class _ProductDetailContent extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primaryColor,
-                          side: const BorderSide(
-                              color: AppTheme.primaryColor),
+                          side: const BorderSide(color: AppTheme.primaryColor),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -695,8 +857,11 @@ class _ProductDetailContent extends StatelessWidget {
                   // İşlem geçmişi başlığı
                   const Row(
                     children: [
-                      Icon(Icons.history_rounded,
-                          color: AppTheme.textSecondary, size: 20),
+                      Icon(
+                        Icons.history_rounded,
+                        color: AppTheme.textSecondary,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'İşlem Geçmişi',
@@ -711,11 +876,11 @@ class _ProductDetailContent extends StatelessWidget {
                   const SizedBox(height: 14),
                   // İşlem listesi
                   StreamBuilder<List<TransactionModel>>(
-                    stream: transactionService
-                        .getProductTransactions(product.id),
+                    stream: transactionService.getProductTransactions(
+                      product.id,
+                    ),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const SizedBox(
                           height: 100,
                           child: LoadingWidget(),
@@ -727,8 +892,7 @@ class _ProductDetailContent extends StatelessWidget {
                       if (transactions.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(24),
-                          decoration:
-                              AppTheme.glassDecoration(opacity: 0.05),
+                          decoration: AppTheme.glassDecoration(opacity: 0.05),
                           child: const Center(
                             child: Column(
                               children: [
@@ -816,5 +980,187 @@ class _ProductDetailContent extends StatelessWidget {
       return quantity.toInt().toString();
     }
     return quantity.toStringAsFixed(1);
+  }
+}
+
+/// Ürün fotoğrafını tam ekranda açar (mobilde çift dokunma/kaydırma,
+/// web'de fare tekerleği ile yakınlaştırma destekler).
+void _openZoomableImage(BuildContext context, String imageUrl, String title) {
+  Navigator.of(context).push(
+    PageRouteBuilder<void>(
+      opaque: true,
+      barrierColor: Colors.black,
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 150),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          _ZoomableImageScreen(imageUrl: imageUrl, title: title),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          FadeTransition(opacity: animation, child: child),
+    ),
+  );
+}
+
+class _ZoomableImageScreen extends StatefulWidget {
+  final String imageUrl;
+  final String title;
+
+  const _ZoomableImageScreen({required this.imageUrl, required this.title});
+
+  @override
+  State<_ZoomableImageScreen> createState() => _ZoomableImageScreenState();
+}
+
+class _ZoomableImageScreenState extends State<_ZoomableImageScreen> {
+  static const double _maxScale = 6.0;
+  static const double _doubleTapScale = 2.5;
+
+  final TransformationController _transformationController =
+      TransformationController();
+  TapDownDetails? _doubleTapDetails;
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  double get _currentScale =>
+      _transformationController.value.getMaxScaleOnAxis();
+
+  /// [focalPoint] noktası sabit kalacak şekilde [targetScale] oranına yakınlaştırır.
+  void _zoomAt(Offset focalPoint, double targetScale) {
+    final current = _currentScale;
+    if (current <= 0) return;
+    final scale = (targetScale / current).clamp(0.05, 20.0);
+    final matrix = Matrix4.identity()
+      ..translateByDouble(focalPoint.dx, focalPoint.dy, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1)
+      ..translateByDouble(-focalPoint.dx, -focalPoint.dy, 0, 1);
+    _transformationController.value = matrix * _transformationController.value;
+  }
+
+  void _handleDoubleTap() {
+    if (_currentScale > 1.01) {
+      _transformationController.value = Matrix4.identity();
+      return;
+    }
+    _zoomAt(_doubleTapDetails?.localPosition ?? Offset.zero, _doubleTapScale);
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    final delta = event.scrollDelta.dy;
+    if (delta == 0) return;
+    final target = (_currentScale * (delta < 0 ? 1.15 : 1 / 1.15))
+        .clamp(1.0, _maxScale);
+    _zoomAt(event.localPosition, target);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              Navigator.of(context).maybePop(),
+          const SingleActivator(LogicalKeyboardKey.backspace): () =>
+              Navigator.of(context).maybePop(),
+        },
+        child: Focus(
+          autofocus: true,
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Listener(
+                    onPointerSignal: _handlePointerSignal,
+                    child: GestureDetector(
+                      onDoubleTapDown: (details) =>
+                          _doubleTapDetails = details,
+                      onDoubleTap: _handleDoubleTap,
+                      child: InteractiveViewer(
+                        transformationController: _transformationController,
+                        minScale: 1.0,
+                        maxScale: _maxScale,
+                        child: SizedBox.expand(
+                          child: AppNetworkImage(
+                            imageUrl: widget.imageUrl,
+                            fit: BoxFit.contain,
+                            iconSize: 80,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Ürün adı
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  right: 64,
+                  child: Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                // Kapat butonu
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: IconButton(
+                    tooltip: 'Kapat',
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                // İpucu
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Çift dokun veya fare tekerleği ile yakınlaştır · Sürükleyerek gezin',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
