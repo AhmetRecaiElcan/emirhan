@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../constants/app_constants.dart';
 import '../../constants/app_theme.dart';
 import '../../models/transaction_model.dart';
+import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/transaction_service.dart';
 import '../../widgets/transaction_tile.dart';
@@ -67,7 +69,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ],
         ),
         content: const Text(
-          'Tüm işlem geçmişi veritabanından kalıcı olarak silinecektir.\n\nBu işlem geri alınamaz. Emin misiniz?',
+          'Yalnızca bu kullanıcıya ait işlem kayıtları veritabanından kalıcı olarak silinecektir.\n\nBu işlem geri alınamaz. Emin misiniz?',
           style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
         ),
         actions: [
@@ -87,16 +89,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Evet, Hepsini Sil'),
+            child: const Text('Evet, İşlemlerimi Sil'),
           ),
         ],
       ),
     );
 
+    if (!mounted) return;
     if (confirmed == true) {
       setState(() => _isDeleting = true);
       try {
-        await _transactionService.clearAllTransactions();
+        final user = Provider.of<AuthService>(
+          context,
+          listen: false,
+        ).currentUser;
+        if (user == null) {
+          throw StateError('İşlemleri silmek için giriş yapmalısınız.');
+        }
+        await _transactionService.clearAllTransactions(user.uid);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -104,7 +114,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               children: [
                 Icon(Icons.check_circle_outline, color: AppTheme.successColor),
                 SizedBox(width: 10),
-                Text('Tüm işlemler başarıyla silindi ve veritabanı temizlendi'),
+                Text('Bu kullanıcıya ait tüm işlemler başarıyla silindi'),
               ],
             ),
             backgroundColor: AppTheme.cardColor,
@@ -314,7 +324,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     ),
                               const SizedBox(width: 8),
                               const Text(
-                                'İşlemleri Temizle',
+                                'İşlemlerimi Temizle',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,

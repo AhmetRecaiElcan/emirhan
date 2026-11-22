@@ -58,9 +58,11 @@ class TransactionService {
     await _transactionsRef.doc(transactionId).delete();
   }
 
-  // Tüm işlemleri temizle (toplu silme)
-  Future<void> clearAllTransactions() async {
-    final snapshot = await _transactionsRef.get();
+  // Giriş yapan kullanıcının işlemlerini temizle (toplu silme)
+  Future<void> clearAllTransactions(String userId) async {
+    final snapshot = await _transactionsRef
+        .where('fromUserId', isEqualTo: userId)
+        .get();
     final docs = snapshot.docs;
     if (docs.isEmpty) return;
 

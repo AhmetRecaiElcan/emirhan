@@ -30,7 +30,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
         && request.resource.data.fromUserId == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isOwner(resource.data.fromUserId);
     }
   }
 }
